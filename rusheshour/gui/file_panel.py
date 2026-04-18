@@ -2,7 +2,13 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidget, QListWidgetItem
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QFont
+
+
+_COLOR_CURRENT = QColor("#1e88e5")
+_COLOR_DONE    = QColor("#4caf50")
+_COLOR_ERROR   = QColor("#f44336")
+_COLOR_PENDING = QColor("#dddddd")
 
 
 class FilePanel(QWidget):
@@ -38,7 +44,7 @@ class FilePanel(QWidget):
         """)
         layout.addWidget(self._list)
 
-        self._files:   list[Path]    = []
+        self._files:   list[Path]     = []
         self._status:  dict[int, str] = {}   # index → "pending"|"done"|"error"
         self._current: int = -1
 
@@ -53,46 +59,68 @@ class FilePanel(QWidget):
         self._status  = {}
         self._current = -1
         self._label.setText(f"{len(files)} fichier(s)")
-        self._refresh()
+        self._rebuild()
 
     def set_current(self, index: int) -> None:
+        prev = self._current
         self._current = index
-        self._refresh()
+        if prev != index:
+            item = self._list.item(prev)
+            if item is not None:
+                self._apply_style(item, prev)
+        item = self._list.item(index)
+        if item is not None:
+            self._apply_style(item, index)
+            self._list.blockSignals(True)
+            self._list.setCurrentRow(index)
+            self._list.scrollToItem(item)
+            self._list.blockSignals(False)
 
     def mark_status(self, index: int, status: str) -> None:
         """status : "pending" | "done" | "error" """
         self._status[index] = status
-        self._refresh()
+        item = self._list.item(index)
+        if item is not None:
+            self._apply_style(item, index)
 
     def update_path(self, index: int, new_path: Path) -> None:
         if 0 <= index < len(self._files):
             self._files[index] = new_path
-            self._refresh()
+            item = self._list.item(index)
+            if item is not None:
+                item.setText(new_path.name)
+                item.setToolTip(str(new_path))
 
     # ------------------------------------------------------------------
-    # Rendu
+    # Rendu interne
     # ------------------------------------------------------------------
 
-    def _refresh(self) -> None:
+    def _apply_style(self, item: QListWidgetItem, index: int) -> None:
+        status = self._status.get(index, "pending")
+        font   = item.font()
+        if index == self._current:
+            item.setForeground(_COLOR_CURRENT)
+            font.setBold(True)
+        elif status == "done":
+            item.setForeground(_COLOR_DONE)
+            font.setBold(False)
+        elif status == "error":
+            item.setForeground(_COLOR_ERROR)
+            font.setBold(False)
+        else:
+            item.setForeground(_COLOR_PENDING)
+            font.setBold(False)
+        item.setFont(font)
+
+    def _rebuild(self) -> None:
+        """Reconstruit entièrement la liste. Appelé uniquement par set_files()."""
         self._list.blockSignals(True)
         self._list.clear()
 
         for i, f in enumerate(self._files):
             item = QListWidgetItem(f.name)
             item.setToolTip(str(f))
-
-            status = self._status.get(i, "pending")
-
-            if i == self._current:
-                item.setForeground(QColor("#1e88e5"))
-                font = item.font()
-                font.setBold(True)
-                item.setFont(font)
-            elif status == "done":
-                item.setForeground(QColor("#4caf50"))
-            elif status == "error":
-                item.setForeground(QColor("#f44336"))
-
+            self._apply_style(item, i)
             self._list.addItem(item)
 
         if 0 <= self._current < self._list.count():

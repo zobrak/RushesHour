@@ -17,10 +17,9 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QSplitter, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QInputDialog, QFileDialog, QMessageBox,
-    QSizePolicy,
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QKeySequence, QShortcut, QFont
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QKeySequence, QShortcut
 
 from rusheshour.core.session  import Session
 from rusheshour.core.scanner  import collect_videos
@@ -51,13 +50,32 @@ QSplitter::handle { background: #333; }
 """
 
 
+class _FileInfoWorker(QThread):
+    """Récupère les métadonnées et détecte les erreurs hors du thread GUI."""
+
+    ready = pyqtSignal(int, dict, list)   # (index, info, errors)
+
+    def __init__(self, index: int, filepath: Path, opt_repair: bool) -> None:
+        super().__init__()
+        self._index      = index
+        self._filepath   = filepath
+        self._opt_repair = opt_repair
+
+    def run(self) -> None:
+        info   = get_video_info(self._filepath)
+        errors = check_errors(self._filepath) if self._opt_repair else []
+        self.ready.emit(self._index, info, errors)
+
+
 class MainWindow(QMainWindow):
     def __init__(self, session: Session, parent=None) -> None:
         super().__init__(parent)
-        self._session = session
-        self._videos:  list[Path] = []
-        self._current: int        = -1
-        self._errors:  list[str]  = []
+        self._session      = session
+        self._videos:       list[Path]              = []
+        self._current:      int                     = -1
+        self._errors:       list[str]               = []
+        self._current_info: dict                    = {}
+        self._info_worker:  _FileInfoWorker | None  = None
 
         self.setWindowTitle("RushesHour v0.8.0")
         self.setMinimumSize(1050, 650)
@@ -78,11 +96,9 @@ class MainWindow(QMainWindow):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(splitter)
 
-        # Panneau gauche
         self._file_panel = FilePanel()
         splitter.addWidget(self._file_panel)
 
-        # Panneau droit
         right = QWidget()
         rl = QVBoxLayout(right)
         rl.setContentsMargins(0, 0, 0, 0)
@@ -101,7 +117,6 @@ class MainWindow(QMainWindow):
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
 
-        # Connexions signaux
         self._file_panel.file_selected.connect(self._on_file_selected_by_panel)
         self._player.position_changed.connect(self._timeline.set_position)
         self._player.duration_changed.connect(self._timeline.set_duration)
@@ -174,10 +189,6 @@ class MainWindow(QMainWindow):
         a_open = m_file.addAction("Ouvrir un dossier…")
         a_open.setShortcut("Ctrl+O")
         a_open.triggered.connect(self._open_folder_dialog)
-
-        a_dest = m_file.addAction("Définir la destination…")
-        a_dest.triggered.connect(self._set_destination_dialog)
-
         m_file.addSeparator()
         a_quit = m_file.addAction("Quitter")
         a_quit.setShortcut("Ctrl+Q")
@@ -185,6 +196,7 @@ class MainWindow(QMainWindow):
 
         # Options
         m_opts = mb.addMenu("&Options")
+
         self._act_opt_repair = m_opts.addAction("Réparation automatique")
         self._act_opt_repair.setCheckable(True)
         self._act_opt_repair.setChecked(self._session.opt_repair)
@@ -195,9 +207,11 @@ class MainWindow(QMainWindow):
         self._act_opt_convert = m_opts.addAction("Proposition de conversion MP4")
         self._act_opt_convert.setCheckable(True)
         self._act_opt_convert.setChecked(self._session.opt_convert)
-        self._act_opt_convert.triggered.connect(
-            lambda c: setattr(self._session, "opt_convert", c)
-        )
+        self._act_opt_convert.triggered.connect(self._on_opt_convert_changed)
+
+        m_opts.addSeparator()
+        a_dest = m_opts.addAction("Définir la destination…")
+        a_dest.triggered.connect(self._set_destination_dialog)
 
         # Aide
         m_help = mb.addMenu("&Aide")
@@ -227,9 +241,7 @@ class MainWindow(QMainWindow):
         self._file_panel.set_files(self._videos)
         if self._videos:
             self._load_file(0)
-            self.statusBar().showMessage(
-                f"{len(self._videos)} vidéo(s) — {root}"
-            )
+            self.statusBar().showMessage(f"{len(self._videos)} vidéo(s) — {root}")
         else:
             self.statusBar().showMessage(f"Aucune vidéo dans : {root}")
 
@@ -237,50 +249,75 @@ class MainWindow(QMainWindow):
         if not (0 <= index < len(self._videos)):
             return
 
-        self._current = index
-        filepath = self._videos[index]
+        self._cancel_info_worker()
+
+        self._current      = index
+        self._errors       = []
+        self._current_info = {}
+        filepath           = self._videos[index]
 
         self._file_panel.set_current(index)
         self._timeline.reset()
         self._player.load(filepath)
         self._set_actions_enabled(True)
-
-        # Infos ffprobe
-        info = get_video_info(filepath)
-        self._update_info_bar(filepath, info, index)
-
-        # Détection d'erreurs
-        self._errors = []
         self._btn_repair.setStyleSheet("")
-        if self._session.opt_repair:
-            errors = check_errors(filepath)
-            if errors:
-                self._errors = errors
-                self._btn_repair.setStyleSheet(
-                    "background:#b71c1c; color:white;"
-                )
-                self._file_panel.mark_status(index, "error")
-                self.statusBar().showMessage(
-                    f"⚠ {len(errors)} erreur(s) détectée(s) — cliquez Réparer"
-                )
+        self._btn_convert.setVisible(False)
 
-        # Affichage conditionnel du bouton Convertir
-        mp4 = is_already_mp4(info)
-        self._btn_convert.setVisible(self._session.opt_convert and not mp4)
+        self._lbl_file.setText(filepath.name)
+        self._lbl_index.setText(f"[{index + 1}/{len(self._videos)}]")
+        self._lbl_info.setText("Analyse…")
+        dest = str(self._session.output_dir) if self._session.output_dir else "destination : non définie"
+        self._lbl_dest.setText(dest)
 
-    def _update_info_bar(self, filepath: Path, info: dict, index: int) -> None:
+        worker = _FileInfoWorker(index, filepath, self._session.opt_repair)
+        worker.ready.connect(self._on_file_info)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+        self._info_worker = worker
+
+    def _cancel_info_worker(self) -> None:
+        if self._info_worker is not None:
+            try:
+                self._info_worker.ready.disconnect(self._on_file_info)
+            except RuntimeError:
+                pass
+            self._info_worker = None
+
+    def _on_file_info(self, index: int, info: dict, errors: list[str]) -> None:
+        if index != self._current:
+            return
+
+        self._current_info = info
+        self._info_worker  = None
+
+        filepath = self._videos[index]
         self._lbl_file.setText(filepath.name)
         self._lbl_index.setText(f"[{index + 1}/{len(self._videos)}]")
 
         if "error" not in info:
-            dur  = format_duration(info.get("duration_s", 0.0))
-            size = info.get("size_mb", "?")
+            dur   = format_duration(info.get("duration_s", 0.0))
+            size  = info.get("size_mb", "?")
             codec = info.get("video_codec", "?")
             res   = info.get("resolution", "")
             self._lbl_info.setText(f"{codec}  {res}  {dur}  {size} Mo")
         else:
             self._lbl_info.setText(f"⚠ {info['error']}")
 
+        if errors:
+            self._errors = errors
+            self._btn_repair.setStyleSheet("background:#b71c1c; color:white;")
+            self._file_panel.mark_status(index, "error")
+            self.statusBar().showMessage(
+                f"⚠ {len(errors)} erreur(s) détectée(s) — cliquez Réparer"
+            )
+
+        self._refresh_action_visibility()
+
+    def _refresh_action_visibility(self) -> None:
+        mp4 = is_already_mp4(self._current_info)
+        self._btn_convert.setVisible(self._session.opt_convert and not mp4)
+
+    def _update_dest_label(self) -> None:
         dest = str(self._session.output_dir) if self._session.output_dir else "destination : non définie"
         self._lbl_dest.setText(dest)
 
@@ -311,6 +348,10 @@ class MainWindow(QMainWindow):
             f"{icon}  {self._videos[self._current].name}"
             if 0 <= self._current < len(self._videos) else ""
         )
+
+    def _on_opt_convert_changed(self, checked: bool) -> None:
+        self._session.opt_convert = checked
+        self._refresh_action_visibility()
 
     # ------------------------------------------------------------------
     # Actions fichier
@@ -382,28 +423,34 @@ class MainWindow(QMainWindow):
     def _act_convert(self) -> None:
         if self._current < 0:
             return
-        filepath = self._videos[self._current]
+        current  = self._current   # snapshot avant exec()
+        filepath = self._videos[current]
         self._player.stop()
         dlg = ConvertDialog(filepath, self._session.output_dir, self)
         dlg.exec()
+        if current != self._current:
+            return   # l'utilisateur a navigué pendant le dialogue
         if dlg.result_path != filepath:
-            self._videos[self._current] = dlg.result_path
-            self._file_panel.update_path(self._current, dlg.result_path)
-            self._file_panel.mark_status(self._current, "done")
-            self._load_file(self._current)
+            self._videos[current] = dlg.result_path
+            self._file_panel.update_path(current, dlg.result_path)
+            self._file_panel.mark_status(current, "done")
+            self._load_file(current)
 
     def _act_repair(self) -> None:
         if self._current < 0:
             return
-        filepath = self._videos[self._current]
+        current  = self._current   # snapshot avant exec()
+        filepath = self._videos[current]
+        errors   = list(self._errors)
         self._player.stop()
-        dlg = RepairDialog(filepath, self._errors, self)
+        dlg = RepairDialog(filepath, errors, self)
         dlg.exec()
+        if current != self._current:
+            return   # l'utilisateur a navigué pendant le dialogue
         if dlg.result_path != filepath:
-            self._videos[self._current] = dlg.result_path
-            self._file_panel.update_path(self._current, dlg.result_path)
-        # Recharge pour re-vérifier les erreurs
-        self._load_file(self._current)
+            self._videos[current] = dlg.result_path
+            self._file_panel.update_path(current, dlg.result_path)
+        self._load_file(current)
 
     def _act_replay(self) -> None:
         if 0 <= self._current < len(self._videos):
@@ -437,6 +484,7 @@ class MainWindow(QMainWindow):
             dest = Path(folder)
             dest.mkdir(parents=True, exist_ok=True)
             self._session.output_dir = dest
+            self._update_dest_label()
             self.statusBar().showMessage(f"Destination : {dest}")
 
     def _show_about(self) -> None:
@@ -449,3 +497,12 @@ class MainWindow(QMainWindow):
             "Licence : GPLv3<br>"
             "<a href='https://github.com/zobrak/RushesHour'>github.com/zobrak/RushesHour</a>",
         )
+
+    # ------------------------------------------------------------------
+    # Cycle de vie
+    # ------------------------------------------------------------------
+
+    def closeEvent(self, event) -> None:
+        self._cancel_info_worker()
+        self._player.stop()
+        super().closeEvent(event)

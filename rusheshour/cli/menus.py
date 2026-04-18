@@ -88,10 +88,6 @@ def show_menu(
             return ("next", filepath)
 
         elif choice == "1":
-            if convert and confirm(
-                "Convertir en MP4 avant de passer au suivant ?", default_yes=False
-            ):
-                filepath = action_convert_mp4(filepath, session.output_dir)
             return ("skip", filepath)
 
         elif choice == "2":

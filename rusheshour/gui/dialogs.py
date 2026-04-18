@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QDialog, QVBoxLayout, QLabel, QPushButton,
     QProgressBar, QTextEdit, QMessageBox,
 )
 from PyQt6.QtCore import QThread, pyqtSignal
@@ -33,7 +33,8 @@ class RepairWorker(QThread):
         self._errors   = errors
 
     def run(self) -> None:
-        import io, contextlib
+        import io
+        import contextlib
         from rusheshour.core.repair import action_repair
 
         buf = io.StringIO()
@@ -67,6 +68,17 @@ class ConvertWorker(QThread):
         super().__init__()
         self._filepath   = filepath
         self._output_dir = output_dir
+        self._abort      = False
+        self._proc: subprocess.Popen | None = None
+
+    def abort(self) -> None:
+        """Demande l'arrêt de la conversion en terminant le sous-processus ffmpeg."""
+        self._abort = True
+        if self._proc is not None:
+            try:
+                self._proc.terminate()
+            except OSError:
+                pass
 
     def run(self) -> None:
         from rusheshour.core.convert import FFMPEG_ENCODE_FLAGS
@@ -88,13 +100,16 @@ class ConvertWorker(QThread):
 
         cmd = ["ffmpeg", "-i", str(filepath)] + FFMPEG_ENCODE_FLAGS + ["-y", str(work_path)]
 
+        proc = None
         try:
             proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True, errors="replace")
+            self._proc = proc
 
             assert proc.stderr is not None
             for line in proc.stderr:
-                line = line.rstrip()
-                m = self._TIME_RE.search(line)
+                if self._abort:
+                    break
+                m = self._TIME_RE.search(line.rstrip())
                 if m and duration > 0:
                     h, mn, s = int(m.group(1)), int(m.group(2)), float(m.group(3))
                     elapsed = h * 3600 + mn * 60 + s
@@ -102,11 +117,12 @@ class ConvertWorker(QThread):
                     self.progress_updated.emit(pct)
 
             proc.wait()
+            self._proc = None
 
-            if proc.returncode != 0:
-                if work_path.exists():
-                    work_path.unlink()
-                self.failed.emit("Conversion échouée (code ffmpeg ≠ 0)")
+            if self._abort or proc.returncode != 0:
+                work_path.unlink(missing_ok=True)
+                if not self._abort:
+                    self.failed.emit("Conversion échouée (code ffmpeg ≠ 0)")
                 return
 
             if filepath.exists():
@@ -119,6 +135,13 @@ class ConvertWorker(QThread):
             self.finished.emit(output_path)
 
         except Exception as exc:
+            if proc is not None and proc.poll() is None:
+                try:
+                    proc.terminate()
+                    proc.wait()
+                except OSError:
+                    pass
+            work_path.unlink(missing_ok=True)
             self.failed.emit(str(exc))
 
 
@@ -136,7 +159,6 @@ class RepairDialog(QDialog):
         self.result_path: Path = filepath
 
         layout = QVBoxLayout(self)
-
         layout.addWidget(QLabel(f"<b>Réparation de :</b> {filepath.name}"))
 
         self._progress = QProgressBar()
@@ -146,7 +168,9 @@ class RepairDialog(QDialog):
         self._log = QTextEdit()
         self._log.setReadOnly(True)
         self._log.setMinimumHeight(160)
-        self._log.setStyleSheet("background:#111; color:#ccc; font-family:monospace; font-size:11px;")
+        self._log.setStyleSheet(
+            "background:#111; color:#ccc; font-family:monospace; font-size:11px;"
+        )
         layout.addWidget(self._log)
 
         self._btn = QPushButton("Fermer")
@@ -158,7 +182,21 @@ class RepairDialog(QDialog):
         self._worker.log_line.connect(self._log.append)
         self._worker.finished.connect(self._on_finished)
         self._worker.failed.connect(self._on_failed)
+        self._worker.finished.connect(self._worker.deleteLater)
+        self._worker.failed.connect(self._worker.deleteLater)
         self._worker.start()
+
+    def closeEvent(self, event) -> None:
+        if self._worker.isRunning():
+            # action_repair() ne peut pas être interrompue ; on déconnecte
+            # les signaux pour éviter tout accès au widget après destruction.
+            try:
+                self._worker.log_line.disconnect(self._log.append)
+                self._worker.finished.disconnect(self._on_finished)
+                self._worker.failed.disconnect(self._on_failed)
+            except RuntimeError:
+                pass
+        super().closeEvent(event)
 
     def _on_finished(self, result: Path) -> None:
         self.result_path = result
@@ -184,7 +222,6 @@ class ConvertDialog(QDialog):
         self.result_path: Path = filepath
 
         layout = QVBoxLayout(self)
-
         layout.addWidget(QLabel(f"<b>Conversion :</b> {filepath.name}"))
         layout.addWidget(QLabel("Encodage H.264 / AAC — CRF 23, preset medium"))
 
@@ -206,15 +243,33 @@ class ConvertDialog(QDialog):
         self._worker.failed.connect(self._on_failed)
         self._worker.start()
 
+    def closeEvent(self, event) -> None:
+        if self._worker.isRunning():
+            try:
+                self._worker.progress_updated.disconnect(self._progress.setValue)
+                self._worker.finished.disconnect(self._on_finished)
+                self._worker.failed.disconnect(self._on_failed)
+            except RuntimeError:
+                pass
+            self._worker.abort()
+            self._worker.wait(5000)
+            self._worker.deleteLater()
+        super().closeEvent(event)
+
     def _on_finished(self, result: Path) -> None:
         self.result_path = result
-        size_mb = round(result.stat().st_size / 1024 / 1024, 2)
-        self._lbl.setText(f"✓ Converti → {result.name}  ({size_mb} Mo)")
+        try:
+            size_mb = round(result.stat().st_size / 1024 / 1024, 2)
+            self._lbl.setText(f"✓ Converti → {result.name}  ({size_mb} Mo)")
+        except FileNotFoundError:
+            self._lbl.setText(f"✓ Converti → {result.name}")
         self._btn.setEnabled(True)
+        self._worker.deleteLater()
 
     def _on_failed(self, msg: str) -> None:
         self._lbl.setText(f"✗ Erreur : {msg}")
         self._btn.setEnabled(True)
+        self._worker.deleteLater()
 
 
 class DeleteConfirmDialog:
