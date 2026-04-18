@@ -1,4 +1,13 @@
-                    GNU GENERAL PUBLIC LICENSE
+This software uses the following third-party components:
+
+- mpv (https://mpv.io) — License: GPL v2+
+- ffmpeg / ffprobe (https://ffmpeg.org) — License: LGPL v2.1+ or GPL v2+
+  (depending on build configuration)
+- python-mpv (https://github.com/jaseg/python-mpv) — License: MIT
+- PyQt6 (https://riverbankcomputing.com/software/pyqt) — License: GPL v3
+
+
+                      GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
  Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
