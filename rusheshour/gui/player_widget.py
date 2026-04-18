@@ -41,10 +41,15 @@ def _init_proc_addr() -> None:
 _init_proc_addr()
 
 
-def _get_proc_address(_, name: bytes) -> int:
+# MpvRenderParam attend un CFunctionType, pas une fonction Python ordinaire.
+_GetProcAddressFn = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p)
+
+def _get_proc_address_impl(_ctx, name: bytes) -> int:
     if _glXGetProcAddressARB is not None:
         return _glXGetProcAddressARB(name) or 0
     return 0
+
+_get_proc_address = _GetProcAddressFn(_get_proc_address_impl)
 
 
 # -- événement Qt thread-safe pour les callbacks mpv -------------------------
