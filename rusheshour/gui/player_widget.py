@@ -49,6 +49,9 @@ class PlayerWidget(QWidget):
                 wid=str(int(self.winId())),
                 keep_open="yes",
                 idle="yes",
+                osc=True,
+                input_vo_keyboard=True,
+                input_default_bindings=True,
                 log_handler=lambda *_: None,
                 loglevel="no",
             )
@@ -115,6 +118,16 @@ class PlayerWidget(QWidget):
             except Exception:
                 pass
 
+    def shutdown(self) -> None:
+        """Termine le processus mpv proprement. Appeler depuis MainWindow.closeEvent()."""
+        if self._player:
+            try:
+                self._player.terminate()
+            except Exception:
+                pass
+            self._player = None
+            self._mpv_available = False
+
     @property
     def is_paused(self) -> bool:
         if self._player:
@@ -125,10 +138,3 @@ class PlayerWidget(QWidget):
     def mpv_available(self) -> bool:
         return self._mpv_available
 
-    def closeEvent(self, event) -> None:
-        if self._player:
-            try:
-                self._player.terminate()
-            except Exception:
-                pass
-        super().closeEvent(event)

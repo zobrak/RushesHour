@@ -504,5 +504,5 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self._cancel_info_worker()
-        self._player.stop()
+        self._player.shutdown()
         super().closeEvent(event)
