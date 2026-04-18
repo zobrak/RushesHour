@@ -28,16 +28,19 @@ supprimer, convertir en MP4.
 
 ## Installation
 
-### Option 1 — Script de lancement (recommandé)
+### Option 1 — Scripts de lancement (recommandé)
 
 ```bash
 git clone https://github.com/zobrak/RushesHour.git
 cd RushesHour
-bash run.sh /chemin/vers/mes/rushes
+bash run_gui.sh [dossier]   # GUI — vérifie libmpv2, ffmpeg, ffprobe
+bash run.sh [dossier]       # CLI
 ```
 
-`run.sh` crée automatiquement un venv isolé dans `.venv/` et installe les
-dépendances Python au premier lancement.
+Les deux scripts créent automatiquement un venv isolé dans `.venv/` et
+installent les dépendances Python au premier lancement. `run_gui.sh` vérifie
+en outre la présence de `libmpv2` et affiche les commandes d'installation
+manquantes si nécessaire.
 
 ### Option 2 — Mode développement
 
@@ -52,7 +55,8 @@ pip install -e ".[gui]"
 ## GUI (recommandée)
 
 ```bash
-python rusheshour_gui.py [dossier]
+bash run_gui.sh [dossier]           # recommandé (vérifie les dépendances)
+python rusheshour_gui.py [dossier]  # lancement direct
 ```
 
 ### Raccourcis clavier
@@ -148,7 +152,8 @@ RushesHour/
 │   └── test_scanner.py          # collect_videos
 ├── sort_rush.py                 # Shim CLI
 ├── rusheshour_gui.py            # Point d'entrée GUI
-├── run.sh                       # Bootstrap venv portable
+├── run.sh                       # Bootstrap venv portable (CLI)
+├── run_gui.sh                   # Bootstrap venv portable (GUI) + vérif. dépendances
 ├── pyproject.toml
 ├── requirements.txt
 ├── requirements-dev.txt

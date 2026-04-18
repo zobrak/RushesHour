@@ -7,6 +7,22 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.1] — Diagnostic dépendances mpv
+
+### Ajouté
+- `run_gui.sh` — script de lancement GUI équivalent à `run.sh` : crée/réutilise
+  le venv, installe les dépendances Python, vérifie `ffmpeg`, `ffprobe` et
+  `libmpv2` avant de lancer et affiche les commandes d'installation manquantes
+- `gui/player_widget.py` — `_show_dep_error()` : distingue `ModuleNotFoundError`
+  (python-mpv absent → `pip install python-mpv`) et `OSError` (libmpv2 absente →
+  `sudo apt install libmpv2`) ; affiche le diagnostic dans la zone vidéo et dans
+  le terminal au lieu d'un simple écran noir
+
+### Modifié
+- `rusheshour/__init__.py` — version `0.9.1`
+
+---
+
 ## [0.9.0] — Rendu OpenGL, plein écran, optimisations
 
 ### Ajouté
