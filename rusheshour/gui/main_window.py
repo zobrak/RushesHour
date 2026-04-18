@@ -76,6 +76,7 @@ class MainWindow(QMainWindow):
         self._errors:       list[str]               = []
         self._current_info: dict                    = {}
         self._info_worker:  _FileInfoWorker | None  = None
+        self._fullscreen:   bool                    = False
 
         self.setWindowTitle("RushesHour v0.8.0")
         self.setMinimumSize(1050, 650)
@@ -93,11 +94,11 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _build_ui(self) -> None:
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.setCentralWidget(splitter)
+        self._splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.setCentralWidget(self._splitter)
 
         self._file_panel = FilePanel()
-        splitter.addWidget(self._file_panel)
+        self._splitter.addWidget(self._file_panel)
 
         right = QWidget()
         rl = QVBoxLayout(right)
@@ -109,13 +110,16 @@ class MainWindow(QMainWindow):
 
         rl.addWidget(self._player,   stretch=1)
         rl.addWidget(self._timeline)
-        rl.addWidget(self._build_action_bar())
-        rl.addWidget(self._build_info_bar())
 
-        splitter.addWidget(right)
-        splitter.setSizes([250, 800])
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
+        self._action_bar = self._build_action_bar()
+        self._info_bar   = self._build_info_bar()
+        rl.addWidget(self._action_bar)
+        rl.addWidget(self._info_bar)
+
+        self._splitter.addWidget(right)
+        self._splitter.setSizes([250, 800])
+        self._splitter.setStretchFactor(0, 0)
+        self._splitter.setStretchFactor(1, 1)
 
         self._file_panel.file_selected.connect(self._on_file_selected_by_panel)
         self._player.position_changed.connect(self._timeline.set_position)
@@ -219,14 +223,16 @@ class MainWindow(QMainWindow):
 
     def _build_shortcuts(self) -> None:
         bindings = {
-            "0":     self._act_next,
-            "1":     self._act_skip,
-            "2":     self._act_rename,
-            "3":     self._act_move,
-            "5":     self._act_delete,
-            "6":     self._act_convert,
-            "7":     self._act_replay,
-            "Space": self._player.pause_toggle,
+            "0":      self._act_next,
+            "1":      self._act_skip,
+            "2":      self._act_rename,
+            "3":      self._act_move,
+            "5":      self._act_delete,
+            "6":      self._act_convert,
+            "7":      self._act_replay,
+            "Space":  self._player.pause_toggle,
+            "F":      self._toggle_fullscreen,
+            "Escape": self._exit_fullscreen,
         }
         for key, slot in bindings.items():
             QShortcut(QKeySequence(key), self, slot)
@@ -497,6 +503,45 @@ class MainWindow(QMainWindow):
             "Licence : GPLv3<br>"
             "<a href='https://github.com/zobrak/RushesHour'>github.com/zobrak/RushesHour</a>",
         )
+
+    # ------------------------------------------------------------------
+    # Plein écran
+    # ------------------------------------------------------------------
+
+    def _toggle_fullscreen(self) -> None:
+        if self._fullscreen:
+            self._exit_fullscreen()
+        else:
+            self._enter_fullscreen()
+
+    def _enter_fullscreen(self) -> None:
+        if self._fullscreen:
+            return
+        self._fullscreen = True
+        self._file_panel.hide()
+        self._action_bar.hide()
+        self._info_bar.hide()
+        self._timeline.hide()
+        self.menuBar().hide()
+        self.statusBar().hide()
+        self.showFullScreen()
+
+    def _exit_fullscreen(self) -> None:
+        if not self._fullscreen:
+            return
+        self._fullscreen = False
+        self.showNormal()
+        self._file_panel.show()
+        self._action_bar.show()
+        self._info_bar.show()
+        self._timeline.show()
+        self.menuBar().show()
+        self.statusBar().show()
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        """Double-clic sur la fenêtre principale → bascule plein écran."""
+        self._toggle_fullscreen()
+        super().mouseDoubleClickEvent(event)
 
     # ------------------------------------------------------------------
     # Cycle de vie

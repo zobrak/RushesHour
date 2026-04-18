@@ -15,9 +15,17 @@ from pathlib import Path
 
 def launch_gui(argv: list[str] | None = None) -> None:
     """Point d'entrée GUI. argv = sys.argv si None."""
+    from PyQt6.QtGui import QSurfaceFormat
     from PyQt6.QtWidgets import QApplication
     from rusheshour.gui.main_window import MainWindow
     from rusheshour.core.session    import Session
+
+    # OpenGL 3.3 Core requis par mpv MpvRenderContext — doit être défini
+    # avant la création de tout contexte GL (avant QApplication sur certains drivers).
+    fmt = QSurfaceFormat()
+    fmt.setVersion(3, 3)
+    fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+    QSurfaceFormat.setDefaultFormat(fmt)
 
     if argv is None:
         argv = sys.argv
