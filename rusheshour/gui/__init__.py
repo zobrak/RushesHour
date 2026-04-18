@@ -8,6 +8,7 @@ Note Wayland : QT_QPA_PLATFORM=xcb doit être défini avant l'import de Qt
 (fait automatiquement dans rusheshour_gui.py).
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -36,4 +37,6 @@ def launch_gui(argv: list[str] | None = None) -> None:
     window  = MainWindow(session)
     window.show()
 
-    sys.exit(app.exec())
+    # os._exit() au lieu de sys.exit() : python-mpv crée un thread d'événements
+    # non-daemon ; sys.exit() attendrait indéfiniment sa fin après terminate().
+    os._exit(app.exec())
