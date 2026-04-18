@@ -7,6 +7,26 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.8.0] — GUI PyQt6
+
+### Ajouté
+- `rusheshour/gui/main_window.py` — `MainWindow` avec layout 3 panneaux (FilePanel / PlayerWidget / barre d'actions)
+- `rusheshour/gui/player_widget.py` — `PlayerWidget` : lecteur mpv embarqué, thread-safe via `pyqtSignal`
+- `rusheshour/gui/timeline_widget.py` — `TimelineWidget` : barre de progression cliquable, timecodes, placeholder IN/OUT (P3)
+- `rusheshour/gui/file_panel.py` — `FilePanel` : liste des fichiers avec codes couleur (courant / traité / erreur)
+- `rusheshour/gui/dialogs.py` — `RepairDialog`, `ConvertDialog` (progression ffmpeg réelle), `DeleteConfirmDialog`
+- `rusheshour_gui.py` — point d'entrée GUI (Option A), force `QT_QPA_PLATFORM=xcb` pour Wayland
+- Raccourcis clavier : `0–7`, `Espace` (pause), `I`/`O` (mark IN/OUT P3)
+- Thème sombre intégré
+- Toutes les actions CLI portées dans la GUI (Suivant, Skip, Renommer, Déplacer, Supprimer, Convertir, Réparer)
+- Détection d'erreurs au chargement : bouton Réparer mis en évidence si erreurs ffprobe
+
+### Modifié
+- `rusheshour/__init__.py` — version `0.8.0`
+- `rusheshour_gui.py` — remplace le placeholder par l'appel à `rusheshour.gui.launch_gui()`
+
+---
+
 ## [0.7.1] — Refactoring package
 
 ### Ajouté

@@ -6,17 +6,18 @@ from rusheshour import __version__ as VERSION
 
 BANNER = f"""
 +--------------------------------------------------------------+
-|  triage_video  v{VERSION:<44}|
+|  RushesHour  v{VERSION:<45}|
 |  Tri interactif de rush vidéo                                |
 +--------------------------------------------------------------+
 |  Usage : sort_rush.py [options] /chemin/vers/dossier      |
 |          sort_rush.py --help                              |
+|          python rusheshour_gui.py [dossier]               |
 +--------------------------------------------------------------+
-|  Nouveautés v0.7.1                                           |
-|  - Audit complet v0.7.0 : 7 bug fixes, docs mises à jour    |
-|  - Propagation du filepath modifié depuis show_menu          |
+|  Nouveautés v0.8.0                                           |
+|  - GUI PyQt6 avec lecteur vidéo mpv embarqué                 |
+|  - Timeline cliquable, panneau fichiers, dialogues           |
 +--------------------------------------------------------------+
-|  Dépendances : mpv  ffmpeg  ffprobe                          |
+|  Dépendances : mpv  ffmpeg  ffprobe  PyQt6                   |
 +--------------------------------------------------------------+
 """
 
