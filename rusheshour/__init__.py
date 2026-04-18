@@ -1,4 +1,4 @@
 """RushesHour — Outil de tri interactif de rush vidéo."""
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 __author__  = "Zobrak"
 __license__ = "GPL-3.0-or-later"

@@ -13,9 +13,9 @@ BANNER = f"""
 |          sort_rush.py --help                              |
 |          python rusheshour_gui.py [dossier]               |
 +--------------------------------------------------------------+
-|  Nouveautés v0.8.0                                           |
-|  - GUI PyQt6 avec lecteur vidéo mpv embarqué                 |
-|  - Timeline cliquable, panneau fichiers, dialogues           |
+|  Nouveautés v0.9.0                                           |
+|  - Rendu vidéo OpenGL intégré (MpvRenderContext)             |
+|  - Plein écran natif (F / Escape / double-clic)              |
 +--------------------------------------------------------------+
 |  Dépendances : mpv  ffmpeg  ffprobe  PyQt6                   |
 +--------------------------------------------------------------+

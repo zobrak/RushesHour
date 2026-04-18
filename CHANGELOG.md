@@ -7,6 +7,46 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.0] — Rendu OpenGL, plein écran, optimisations
+
+### Ajouté
+- `gui/player_widget.py` — rendu vidéo via `MpvRenderContext` + `QOpenGLWidget` :
+  mpv rend directement dans le framebuffer Qt, fenêtre ancrée dans l'UI
+  (abandon de `wid=` X11 qui ouvrait une fenêtre flottante sous Wayland/XWayland)
+- Plein écran natif : `F` / `Escape` / double-clic — masque tous les panneaux
+  hors lecteur ; `showFullScreen()` sur la `MainWindow`
+- `gui/main_window.py` — `_FileInfoWorker(QThread)` : `get_video_info` + `check_errors`
+  hors du thread GUI, plus aucun gel à l'ouverture d'un fichier
+- `gui/player_widget.py` — callback `update_cb` mpv thread-safe via
+  `QCoreApplication.postEvent` (type d'événement Qt enregistré)
+- `gui/__init__.py` — `QSurfaceFormat` OpenGL 3.3 Core configuré avant tout contexte GL
+
+### Modifié
+- `gui/main_window.py` — "Définir la destination" déplacé du menu Fichier vers Options
+- `gui/main_window.py` — correction race condition dans `_act_convert` / `_act_repair` :
+  snapshot de `self._current` avant `dlg.exec()`
+- `gui/main_window.py` — visibilité du bouton Convertir synchronisée avec le toggle
+  `opt_convert` via `_refresh_action_visibility()`
+- `gui/main_window.py` — `closeEvent` annule le `_FileInfoWorker` en cours et appelle `shutdown()`
+- `gui/file_panel.py` — `set_current`, `mark_status`, `update_path` passent de O(n) à O(1) ;
+  `_rebuild()` réservé à `set_files()`
+- `gui/dialogs.py` — `ConvertWorker` : ajout `_abort` / `abort()`, fix zombie process,
+  `missing_ok=True` sur unlink du fichier temporaire
+- `gui/dialogs.py` — `RepairDialog` / `ConvertDialog` : `closeEvent()` avec déconnexion
+  des signaux et abort/wait du worker
+- `gui/dialogs.py` — `ConvertDialog._on_finished` : `try/except FileNotFoundError` sur `stat()`
+- `cli/menus.py` — suppression de la proposition de conversion dans `[1] Ne rien faire`
+- `rusheshour/__init__.py` — version `0.9.0`
+
+### Corrigé
+- Processus mpv bloquait la fermeture : `os._exit()` dans `launch_gui()` remplace
+  `sys.exit()` pour ne pas attendre le thread d'événements non-daemon python-mpv
+- `shutdown()` utilise un graveyard pour éviter le deadlock `__del__` →
+  `terminate()` → `_mpv_terminate_destroy()` depuis `closeEvent()`
+- `input_default_bindings=False` : la touche `q` ne détruit plus le contexte mpv embarqué
+
+---
+
 ## [0.8.0] — GUI PyQt6
 
 ### Ajouté
