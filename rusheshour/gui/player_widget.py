@@ -80,6 +80,22 @@ class PlayerWidget(QOpenGLWidget):
     def initializeGL(self) -> None:
         try:
             import mpv
+        except ModuleNotFoundError:
+            self._show_dep_error(
+                "python-mpv non installé",
+                "pip install python-mpv",
+                "sudo apt install libmpv2",
+            )
+            return
+        except OSError as exc:
+            self._show_dep_error(
+                "libmpv introuvable (bibliothèque C manquante)",
+                "sudo apt install libmpv2",
+                str(exc),
+            )
+            return
+
+        try:
             self._player = mpv.MPV(
                 vo="libmpv",
                 idle="yes",
@@ -100,7 +116,25 @@ class PlayerWidget(QOpenGLWidget):
             self._mpv_available = True
 
         except Exception as exc:
-            print(f"[PlayerWidget] mpv indisponible : {exc}", file=sys.stderr)
+            self._show_dep_error("Erreur d'initialisation mpv", str(exc))
+
+    def _show_dep_error(self, title: str, *hints: str) -> None:
+        from PyQt6.QtWidgets import QVBoxLayout, QLabel
+        print(f"[PlayerWidget] {title}", file=sys.stderr)
+        for h in hints:
+            print(f"  → {h}", file=sys.stderr)
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_title = QLabel(f"⚠ {title}")
+        lbl_title.setStyleSheet("color:#f44336; font-size:13px; font-weight:bold;")
+        lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl_title)
+        for hint in hints:
+            lbl = QLabel(hint)
+            lbl.setStyleSheet("color:#888; font-size:11px; font-family:monospace;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(lbl)
+
 
     # ------------------------------------------------------------------
     # Pipeline de rendu Qt/OpenGL
