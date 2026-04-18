@@ -1,8 +1,12 @@
-import os
 from pathlib import Path
 
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy
 from PyQt6.QtCore import pyqtSignal, Qt
+
+
+# Empêche __del__ → terminate() d'être appelé depuis closeEvent().
+# os._exit() dans launch_gui() tue le processus et toutes les ressources mpv.
+_mpv_graveyard: list = []
 
 
 class PlayerWidget(QWidget):
@@ -47,11 +51,10 @@ class PlayerWidget(QWidget):
             import mpv
             self._player = mpv.MPV(
                 wid=str(int(self.winId())),
-                keep_open="yes",
                 idle="yes",
                 osc=True,
                 input_vo_keyboard=True,
-                input_default_bindings=True,
+                input_default_bindings=False,  # pas de raccourcis mpv (q ne tue pas le contexte)
                 log_handler=lambda *_: None,
                 loglevel="no",
             )
@@ -119,12 +122,17 @@ class PlayerWidget(QWidget):
                 pass
 
     def shutdown(self) -> None:
-        """Termine le processus mpv proprement. Appeler depuis MainWindow.closeEvent()."""
+        """
+        Libère le PlayerWidget sans bloquer sur terminate().
+
+        terminate() → _mpv_terminate_destroy() peut se retrouver en deadlock
+        avec le thread d'événements python-mpv si appelé depuis closeEvent().
+        On déplace la référence dans _mpv_graveyard pour empêcher __del__
+        de déclencher terminate() ; os._exit() dans launch_gui() tue le
+        processus entier sans attendre les threads mpv résiduels.
+        """
         if self._player:
-            try:
-                self._player.terminate()
-            except Exception:
-                pass
+            _mpv_graveyard.append(self._player)  # empêche __del__ → terminate()
             self._player = None
             self._mpv_available = False
 
@@ -137,4 +145,3 @@ class PlayerWidget(QWidget):
     @property
     def mpv_available(self) -> bool:
         return self._mpv_available
-
