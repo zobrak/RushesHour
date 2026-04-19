@@ -4,7 +4,7 @@ build-backend = "setuptools.backends.legacy:build"
 
 [project]
 name = "rusheshour"
-version = "0.9.8"
+version = "0.9.10"
 description = "Outil de tri interactif de rush vidéo"
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.11"
