@@ -176,17 +176,22 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(8, 3, 8, 3)
 
-        self._lbl_file  = QLabel("—")
-        self._lbl_index = QLabel("")
-        self._lbl_dest  = QLabel("")
-        self._lbl_info  = QLabel("")
+        self._lbl_file      = QLabel("—")
+        self._lbl_index     = QLabel("")
+        self._lbl_dest      = QLabel("")
+        self._lbl_info      = QLabel("")
+        self._lbl_selection = QLabel("")
 
-        for lbl in (self._lbl_file, self._lbl_index, self._lbl_dest, self._lbl_info):
+        for lbl in (self._lbl_file, self._lbl_index, self._lbl_dest,
+                    self._lbl_info, self._lbl_selection):
             lbl.setStyleSheet("color:#999; font-size:11px;")
 
-        layout.addWidget(self._lbl_file,  stretch=1)
+        self._lbl_selection.setStyleSheet("color:#64b5f6; font-size:11px;")
+
+        layout.addWidget(self._lbl_file,      stretch=1)
         layout.addWidget(self._lbl_index)
         layout.addWidget(self._lbl_info)
+        layout.addWidget(self._lbl_selection)
         layout.addWidget(self._lbl_dest)
 
         return bar
@@ -277,6 +282,7 @@ class MainWindow(QMainWindow):
         self._set_actions_enabled(True)
         self._btn_export.setEnabled(False)
         self._btn_repair.setStyleSheet("")
+        self._lbl_selection.setText("")
         self._btn_convert.setVisible(False)
 
         self._lbl_file.setText(filepath.name)
@@ -505,9 +511,24 @@ class MainWindow(QMainWindow):
     def _on_selection_changed(self, mark_in, mark_out) -> None:
         self._mark_in  = mark_in
         self._mark_out = mark_out
-        self._btn_export.setEnabled(
-            mark_in is not None and mark_out is not None and mark_out > mark_in
-        )
+        valid = mark_in is not None and mark_out is not None and mark_out > mark_in
+        self._btn_export.setEnabled(valid)
+        if valid:
+            clip_dur   = mark_out - mark_in
+            dur_str    = format_duration(clip_dur)
+            total_dur  = self._current_info.get("duration_s", 0.0)
+            total_size = self._current_info.get("size_mb", 0.0)
+            if total_dur > 0 and total_size > 0:
+                est_mb  = round(total_size * clip_dur / total_dur, 1)
+                size_str = f"~{est_mb} Mo"
+            else:
+                size_str = ""
+            parts = [f"✂  {format_duration(mark_in)} → {format_duration(mark_out)}", dur_str]
+            if size_str:
+                parts.append(size_str)
+            self._lbl_selection.setText("  |  ".join(parts))
+        else:
+            self._lbl_selection.setText("")
 
     def _act_export(self) -> None:
         if self._current < 0:

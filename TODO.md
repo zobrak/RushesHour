@@ -1,6 +1,6 @@
 # RushesHour — TODO
 
-Version courante : **0.9.11**
+Version courante : **0.9.12**
 
 ---
 
@@ -17,7 +17,7 @@ Version courante : **0.9.11**
 
 ## P4 — Qualité et distribution (en cours)
 
-- [ ] Affichage durée et poids estimé de la sélection IN/OUT dans la GUI
+- [x] Affichage durée et poids estimé de la sélection IN/OUT dans la GUI
   (bitrate × durée / 8, affiché en temps réel dès que IN < OUT)
 - [ ] Nettoyage des fichiers temporaires orphelins au démarrage
   (patterns `*.repair_tmp.*` et `*.tmp_converting.mp4` laissés par SIGKILL)

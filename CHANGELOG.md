@@ -7,6 +7,16 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.12] — Infos sélection IN/OUT en temps réel
+
+### Ajouté
+- `gui/main_window.py` — label `_lbl_selection` dans la barre d'infos :
+  dès que IN < OUT sont posés, affiche en bleu
+  `✂  début → fin  |  durée  |  ~X Mo` (poids estimé par interpolation linéaire
+  `size_mb × clip_dur / total_dur`). Effacé au chargement du fichier suivant.
+
+---
+
 ## [0.9.11] — Collision destination + simplification dialogue conversion
 
 ### Corrigé
