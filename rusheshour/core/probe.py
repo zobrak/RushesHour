@@ -28,8 +28,9 @@ def get_video_info(filepath: Path) -> dict:
     info: dict = {}
     fmt = data.get("format", {})
 
-    info["container"]   = fmt.get("format_long_name", fmt.get("format_name", "inconnu"))
-    info["format_name"] = fmt.get("format_name", "")
+    info["container"]    = fmt.get("format_long_name", fmt.get("format_name", "inconnu"))
+    info["format_name"]  = fmt.get("format_name", "")
+    info["major_brand"]  = fmt.get("tags", {}).get("major_brand", "")
 
     try:
         info["size_mb"] = round(int(fmt.get("size", 0)) / 1024 / 1024, 2)
@@ -55,17 +56,30 @@ def get_video_info(filepath: Path) -> dict:
     return info
 
 
+_MP4_MAJOR_BRANDS: frozenset[str] = frozenset({
+    "isom",   # ISO Base Media (standard MP4)
+    "mp41",   # MPEG-4 Part 1
+    "mp42",   # MPEG-4 Part 2
+    "avc1",   # H.264 in MP4
+    "iso2", "iso4", "iso5", "iso6",
+    "M4V ",   # iTunes video  (4 chars, espace de padding obligatoire)
+    "M4A ",   # iTunes audio
+    "f4v ",   # Adobe Flash MP4
+    "MSNV",   # Sony PSP
+})
+
+
 def is_already_mp4(info: dict) -> bool:
     """
-    Retourne True si le fichier est déjà encodé en conteneur MP4 + H.264.
+    Retourne True si le fichier est en conteneur MP4 + H.264.
 
-    format_name peut contenir plusieurs valeurs séparées par des virgules
-    (ex. "mov,mp4,m4a,3gp,3g2,mj2" — format réel retourné par ffprobe pour
-    les fichiers .mp4) ; on vérifie la présence de "mp4" dans l'ensemble.
+    Utilise major_brand (atome ftyp du header, extrait par ffprobe) pour
+    distinguer MP4 ("isom", "mp41"…) de MOV ("qt  "), MKV, AVI, etc.
+    Les fichiers sans major_brand (MKV, AVI…) retournent False.
     """
-    formats     = {f.strip() for f in info.get("format_name", "").split(",")}
+    major_brand = info.get("major_brand", "")
     video_codec = info.get("video_codec", "")
-    return "mp4" in formats and video_codec in ("h264", "avc")
+    return major_brand in _MP4_MAJOR_BRANDS and video_codec in ("h264", "avc")
 
 
 def check_errors(filepath: Path) -> list[str]:

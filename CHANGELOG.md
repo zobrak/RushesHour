@@ -7,6 +7,23 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.10] — Détection MP4 par header (major_brand)
+
+### Corrigé
+- `core/probe.py` — `is_already_mp4` utilise désormais `major_brand` (atome `ftyp`
+  du header, lu par ffprobe) au lieu de `format_name` pour identifier le conteneur.
+  Problème : ffprobe retourne `"mov,mp4,m4a,3gp,3g2,mj2"` pour les fichiers `.mp4`
+  **et** `.mov` (même base ISOBMFF), rendant toute analyse de `format_name` ambiguë.
+  `major_brand = "isom"` → MP4 ; `major_brand = "qt  "` → MOV → conversion proposée ;
+  absent (MKV, AVI…) → conversion proposée.
+- `core/probe.py` — `get_video_info()` extrait et retourne `major_brand`.
+
+### Tests
+- `tests/test_probe.py` — tests unitaires mis à jour + 2 tests d'intégration ffprobe
+  (`valid_mp4 → True`, `valid_mkv → False`) qui auraient attrapé la régression.
+
+---
+
 ## [0.9.9] — Export clip IN/OUT (P3)
 
 ### Ajouté
