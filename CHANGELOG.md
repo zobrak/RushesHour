@@ -7,7 +7,19 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
-## [0.9.3] — Correctif QFileDialog portal hang (XCB/Wayland)
+## [0.9.4] — Correctif sélecteur de dossier : processus externe (kdialog/zenity)
+
+### Corrigé
+- `gui/main_window.py` — `_open_folder_dialog()` et `_set_destination_dialog()` :
+  remplacés par `_pick_directory()` qui appelle `kdialog` (KDE) ou `zenity` (GTK)
+  via `subprocess.run`. Sous XCB + QOpenGLWidget + mpv, `QFileDialog` (natif ou
+  non-natif) provoque un SIGABRT : Qt tente de créer une fenêtre XCB native alors
+  que le contexte OpenGL mpv est actif, ce qui abort le processus. Déléguer à un
+  processus externe élimine toute interaction avec le contexte OpenGL.
+
+---
+
+## [0.9.3] — Correctif QFileDialog portal hang (XCB/Wayland) [incomplet]
 
 ### Corrigé
 - `gui/main_window.py` — `_open_folder_dialog()` et `_set_destination_dialog()` :

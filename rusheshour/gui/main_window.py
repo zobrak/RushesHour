@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self._info_worker:  _FileInfoWorker | None  = None
         self._fullscreen:   bool                    = False
 
-        self.setWindowTitle("RushesHour v0.9.3")
+        self.setWindowTitle("RushesHour v0.9.4")
         self.setMinimumSize(1050, 650)
         self.setStyleSheet(_DARK)
 
@@ -477,22 +477,13 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _open_folder_dialog(self) -> None:
-        import sys
-        print("[RH] _open_folder_dialog: avant getExistingDirectory", flush=True, file=sys.stderr)
-        folder = QFileDialog.getExistingDirectory(
-            self, "Ouvrir un dossier de rushes",
-            options=QFileDialog.Option.DontUseNativeDialog,
-        )
-        print(f"[RH] _open_folder_dialog: retour = {folder!r}", flush=True, file=sys.stderr)
+        folder = self._pick_directory("Ouvrir un dossier de rushes")
         if folder:
             self._load_folder(Path(folder))
 
     def _set_destination_dialog(self) -> None:
         current = str(self._session.output_dir) if self._session.output_dir else ""
-        folder = QFileDialog.getExistingDirectory(
-            self, "Choisir le dossier de destination", current,
-            options=QFileDialog.Option.DontUseNativeDialog,
-        )
+        folder = self._pick_directory("Choisir le dossier de destination", current)
         if folder:
             dest = Path(folder)
             dest.mkdir(parents=True, exist_ok=True)
@@ -500,11 +491,36 @@ class MainWindow(QMainWindow):
             self._update_dest_label()
             self.statusBar().showMessage(f"Destination : {dest}")
 
+    def _pick_directory(self, title: str, start: str = "") -> str:
+        """Sélecteur de dossier via processus externe (évite crash Qt XCB + OpenGL)."""
+        import subprocess
+        start = start or str(Path.home())
+        # kdialog (KDE) — processus séparé, aucune interaction avec le contexte OpenGL
+        if shutil.which("kdialog"):
+            r = subprocess.run(
+                ["kdialog", "--getexistingdirectory", start, "--title", title],
+                capture_output=True, text=True,
+            )
+            return r.stdout.strip() if r.returncode == 0 else ""
+        # zenity (GNOME / fallback)
+        if shutil.which("zenity"):
+            r = subprocess.run(
+                ["zenity", "--file-selection", "--directory",
+                 f"--filename={start}/", f"--title={title}"],
+                capture_output=True, text=True,
+            )
+            return r.stdout.strip() if r.returncode == 0 else ""
+        # dernier recours : dialog Qt (peut crasher sur certaines configs XCB+OpenGL)
+        return QFileDialog.getExistingDirectory(
+            self, title, start,
+            QFileDialog.Option.DontUseNativeDialog | QFileDialog.Option.ShowDirsOnly,
+        )
+
     def _show_about(self) -> None:
         QMessageBox.about(
             self,
             "À propos de RushesHour",
-            "<b>RushesHour v0.9.3</b><br>"
+            "<b>RushesHour v0.9.4</b><br>"
             "Outil de tri interactif de rush vidéo<br><br>"
             "Dépendances : mpv · ffmpeg · PyQt6<br>"
             "Licence : GPLv3<br>"
