@@ -5,7 +5,7 @@ Outil de tri interactif de rush vidéo — CLI et GUI PyQt6.
 Parcourt récursivement un dossier, lit chaque fichier dans mpv, détecte et
 propose de réparer les fichiers corrompus via ffmpeg, puis offre un menu
 d'actions : passer au suivant, laisser sur place, renommer, déplacer,
-supprimer, convertir en MP4.
+supprimer, convertir en MP4, ou exporter un segment IN/OUT par stream copy.
 
 ---
 
@@ -70,6 +70,7 @@ python rusheshour_gui.py [dossier]  # lancement direct
 | `5` | Supprimer |
 | `6` | Convertir en MP4 |
 | `7` | Rejouer |
+| `E` | Exporter le segment IN/OUT (actif dès que IN < OUT sont posés) |
 | `Espace` | Pause / lecture |
 | `F` | Plein écran / fenêtré |
 | `Escape` | Quitter le plein écran |
@@ -77,6 +78,20 @@ python rusheshour_gui.py [dossier]  # lancement direct
 | `O` | Marquer le point de sortie OUT (focus timeline requis) |
 | `Ctrl+O` | Ouvrir un dossier |
 | `Ctrl+Q` | Quitter |
+
+### Export de segment IN/OUT
+
+Posez un point d'entrée (`I`) et un point de sortie (`O` ou clic droit sur la
+timeline), puis appuyez sur `E` ou cliquez **Exporter clip**. L'export utilise
+ffmpeg en stream copy (pas de réencodage) : extraction quasi-instantanée, même
+qualité que l'original. Le clip produit est placé dans le dossier de destination
+si celui-ci est défini, sinon à côté du fichier source. Son nom reprend le stem
+de l'original avec le suffixe `_clip_MMmSSs-MMmSSs` (ex.
+`interview_clip_01m30s-02m45s.mkv`).
+
+> **Note** : le stream copy est arrondi au keyframe précédant le point IN — un
+> écart de quelques frames est possible selon le GOP source. Pour une coupe
+> exacte au frame près, une conversion complète serait nécessaire.
 
 ### Menus
 
@@ -137,6 +152,7 @@ RushesHour/
 │   │   ├── probe.py             # get_video_info, check_errors, format_duration
 │   │   ├── repair.py            # action_repair, REPAIR_STRATEGIES (4 stratégies)
 │   │   ├── convert.py           # action_convert_mp4, FFMPEG_ENCODE_FLAGS
+│   │   ├── export.py            # action_export_clip, clip_output_path
 │   │   └── actions.py           # action_rename, action_move_to, action_delete, finalize
 │   ├── cli/
 │   │   ├── main.py              # check_dependencies, process_video, run_session, main
@@ -148,10 +164,13 @@ RushesHour/
 │       ├── player_widget.py     # PlayerWidget (QOpenGLWidget + MpvRenderContext)
 │       ├── timeline_widget.py   # TimelineWidget (QPainter, marqueurs IN/OUT)
 │       ├── file_panel.py        # FilePanel (QListWidget, codes couleur O(1))
-│       └── dialogs.py           # RepairDialog, ConvertDialog, DeleteConfirmDialog
+│       └── dialogs.py           # RepairDialog, ConvertDialog, ExportDialog, DeleteConfirmDialog
 ├── tests/
-│   ├── test_probe.py            # format_duration, is_already_mp4
-│   └── test_scanner.py          # collect_videos
+│   ├── test_probe.py            # format_duration, is_already_mp4 (unitaire + intégration)
+│   ├── test_scanner.py          # collect_videos
+│   ├── test_convert.py          # action_convert_mp4 (intégration)
+│   ├── test_repair.py           # action_repair (intégration)
+│   └── test_export.py           # clip_output_path (unitaire) + action_export_clip (intégration)
 ├── sort_rush.py                 # Shim CLI
 ├── rusheshour_gui.py            # Point d'entrée GUI
 ├── run.sh                       # Bootstrap venv portable (CLI)
@@ -168,7 +187,9 @@ RushesHour/
 
 ```bash
 pip install pytest
-pytest tests/ -v
+pytest tests/ -v                    # tous les tests (unitaires + intégration)
+pytest tests/ -v -m "not integration"  # unitaires seulement (sans ffmpeg)
+pytest tests/ -v -m integration    # intégration seulement
 ```
 
 ---
@@ -179,7 +200,8 @@ GPLv3 — voir [LICENSE](LICENSE).
 
 ---
 
-## À venir — v0.10.0
+## À venir
 
-- Export d'extrait (copie flux ou réencodage) — `rusheshour/core/export.py`
 - Affichage durée et poids estimé de la sélection IN/OUT
+- Nettoyage des fichiers temporaires orphelins (`*.repair_tmp.*`, `*.tmp_converting.mp4`) au démarrage
+- Support `run.sh --gui`
