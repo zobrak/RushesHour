@@ -1,5 +1,5 @@
 """
-Dialogues GUI : réparation, conversion, confirmation suppression.
+Dialogues GUI : réparation, conversion, confirmation suppression, aide, à propos.
 
 RepairWorker / ConvertWorker héritent de QThread et émettent des signaux
 Qt — jamais de mise à jour de widget directe depuis le thread de travail.
@@ -11,9 +11,9 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QProgressBar, QTextEdit, QMessageBox,
+    QProgressBar, QTextEdit, QTextBrowser, QMessageBox,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal, Qt
 
 
 # =============================================================================
@@ -499,6 +499,193 @@ class OrphanCleanupDialog(QDialog):
             except OSError:
                 pass
         self.accept()
+
+
+_HELP_HTML = """
+<style>
+body  { color:#ddd; background:#1a1a1a; font-family:sans-serif; font-size:12px;
+        margin:6px 10px; }
+h2    { color:#64b5f6; border-bottom:1px solid #333; padding-bottom:3px;
+        margin-top:14px; }
+table { border-collapse:collapse; width:100%; margin-bottom:6px; }
+td,th { padding:4px 10px; border:1px solid #2a2a2a; }
+th    { background:#252525; color:#aaa; font-weight:normal; }
+tr:hover td { background:#232323; }
+kbd   { background:#2d2d2d; color:#ddd; padding:1px 6px; border-radius:3px;
+        font-family:monospace; border:1px solid #444; }
+p     { margin:4px 0 8px 0; }
+.note { color:#888; font-style:italic; font-size:11px; }
+ul    { margin:4px 0 8px 16px; padding:0; }
+li    { margin-bottom:3px; }
+</style>
+
+<h2>Raccourcis clavier</h2>
+<table>
+<tr><th>Touche</th><th>Action</th></tr>
+<tr><td><kbd>0</kbd></td><td>Suivant — déplace le fichier vers la destination si définie</td></tr>
+<tr><td><kbd>1</kbd></td><td>Ne rien faire — laisser le fichier en place</td></tr>
+<tr><td><kbd>2</kbd></td><td>Renommer le fichier</td></tr>
+<tr><td><kbd>3</kbd></td><td>Déplacer manuellement vers un dossier au choix</td></tr>
+<tr><td><kbd>5</kbd></td><td>Supprimer (confirmation requise)</td></tr>
+<tr><td><kbd>6</kbd></td><td>Convertir en MP4 / H.264</td></tr>
+<tr><td><kbd>7</kbd></td><td>Rejouer depuis le début</td></tr>
+<tr><td><kbd>E</kbd></td><td>Exporter le segment IN/OUT (actif dès que IN &lt; OUT)</td></tr>
+<tr><td><kbd>I</kbd></td><td>Poser le point d'entrée IN <span class="note">(focus timeline requis)</span></td></tr>
+<tr><td><kbd>O</kbd></td><td>Poser le point de sortie OUT <span class="note">(ou clic droit sur la timeline)</span></td></tr>
+<tr><td><kbd>Espace</kbd></td><td>Pause / lecture</td></tr>
+<tr><td><kbd>F</kbd></td><td>Plein écran / fenêtré</td></tr>
+<tr><td><kbd>Échap</kbd></td><td>Quitter le plein écran</td></tr>
+<tr><td><kbd>Ctrl+O</kbd></td><td>Ouvrir un dossier</td></tr>
+<tr><td><kbd>Ctrl+Q</kbd></td><td>Quitter</td></tr>
+<tr><td><kbd>F1</kbd></td><td>Afficher cette aide</td></tr>
+</table>
+
+<h2>Flux de travail recommandé</h2>
+<ul>
+  <li>Ouvrir un dossier de rushes (<kbd>Ctrl+O</kbd> ou <b>Fichier → Ouvrir</b>).</li>
+  <li>Optionnel : définir un dossier de destination (<b>Options → Définir la destination</b>).
+      Les fichiers validés avec <kbd>0</kbd> y seront déplacés automatiquement.</li>
+  <li>Pour chaque fichier : regarder, décider, appuyer sur un raccourci.</li>
+  <li>La liste à gauche suit la progression ; les fichiers traités sont grisés.</li>
+</ul>
+
+<h2>Export de segment IN/OUT</h2>
+<ul>
+  <li>Cliquer sur la timeline pour lui donner le focus.</li>
+  <li>Appuyer sur <kbd>I</kbd> au moment voulu pour poser le point d'entrée.</li>
+  <li>Appuyer sur <kbd>O</kbd> (ou clic droit) pour poser le point de sortie.</li>
+  <li>La barre d'infos affiche en bleu la durée et le poids estimé du segment.</li>
+  <li>Appuyer sur <kbd>E</kbd> ou cliquer <b>Exporter clip</b> pour lancer l'export.</li>
+</ul>
+<p class="note">L'export utilise ffmpeg en stream copy (pas de réencodage) : qualité identique à
+l'original, durée quasi-instantanée. Le point IN est arrondi au keyframe précédent ;
+un écart de quelques frames est possible selon le GOP source.</p>
+
+<h2>Réparation automatique</h2>
+<p>Activée par défaut (<b>Options → Réparation automatique</b>). Quand des erreurs sont
+détectées, le bouton <b>Réparer</b> s'affiche en rouge. Quatre stratégies ffmpeg sont
+essayées successivement ; la première qui réussit est conservée.</p>
+
+<h2>Conversion MP4</h2>
+<p>Activée par défaut (<b>Options → Proposition de conversion MP4</b>). Proposée
+automatiquement via <kbd>0</kbd> si le fichier n'est pas déjà en MP4/H.264 (détecté
+par l'atome <code>ftyp</code> du header, pas par l'extension). Encodage H.264 / AAC,
+CRF 23, preset medium.</p>
+
+<h2>Fichiers temporaires</h2>
+<p>Au chargement d'un dossier, RushesHour détecte les fichiers temporaires laissés par
+une opération ffmpeg interrompue (<code>*.repair_tmp.*</code>,
+<code>*.tmp_converting.mp4</code>) et propose de les supprimer.</p>
+"""
+
+
+class HelpDialog(QDialog):
+    """Fenêtre d'aide contextuelle — raccourcis, workflow, export IN/OUT."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Aide — RushesHour")
+        self.setMinimumSize(640, 540)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 8)
+
+        browser = QTextBrowser()
+        browser.setOpenExternalLinks(True)
+        browser.setStyleSheet("background:#1a1a1a; color:#ddd; border:none;")
+        browser.setHtml(_HELP_HTML)
+        layout.addWidget(browser)
+
+        btn = QPushButton("Fermer")
+        btn.setFixedWidth(100)
+        btn.clicked.connect(self.accept)
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(btn)
+        row.addStretch()
+        layout.addLayout(row)
+
+
+_ABOUT_HTML = """
+<style>
+body  {{ color:#ddd; background:#1e1e1e; font-family:sans-serif;
+         font-size:12px; margin:10px 16px; }}
+h1    {{ color:#fff; font-size:18px; margin-bottom:2px; }}
+.sub  {{ color:#888; font-size:12px; margin-top:0; }}
+.sec  {{ color:#64b5f6; font-weight:bold; margin-top:14px; }}
+table {{ border-collapse:collapse; }}
+td    {{ padding:2px 10px 2px 0; color:#ccc; }}
+td.k  {{ color:#888; white-space:nowrap; }}
+a     {{ color:#64b5f6; }}
+hr    {{ border:none; border-top:1px solid #333; margin:12px 0; }}
+.gpl  {{ color:#888; font-size:11px; line-height:1.5; }}
+</style>
+
+<h1>RushesHour <span style="font-size:13px;color:#888;">v{version}</span></h1>
+<p class="sub">Outil de tri interactif de rush vidéo</p>
+
+<hr>
+
+<table>
+<tr><td class="k">Auteur</td><td>Zobrak &lt;claude@zobrak.net&gt;</td></tr>
+<tr><td class="k">Dépôt</td>
+    <td><a href="https://github.com/zobrak/RushesHour">github.com/zobrak/RushesHour</a></td></tr>
+<tr><td class="k">Licence</td><td>GNU General Public License v3.0 or later</td></tr>
+</table>
+
+<hr>
+
+<p class="sec">Dépendances</p>
+<table>
+<tr><td class="k">mpv / libmpv2</td><td>Lecture vidéo (MpvRenderContext + OpenGL)</td></tr>
+<tr><td class="k">python-mpv</td><td>Binding Python pour libmpv</td></tr>
+<tr><td class="k">ffmpeg / ffprobe</td><td>Réparation, conversion, export de segments</td></tr>
+<tr><td class="k">PyQt6</td><td>Interface graphique (Qt 6)</td></tr>
+</table>
+
+<hr>
+
+<p class="gpl">
+Ce programme est un logiciel libre&nbsp;: vous pouvez le redistribuer et/ou le modifier
+selon les termes de la <b>Licence Publique Générale GNU</b> telle que publiée par la
+Free Software Foundation — version&nbsp;3, ou (à votre option) toute version ultérieure.
+<br><br>
+Ce programme est distribué dans l'espoir qu'il sera utile, mais
+<b>SANS AUCUNE GARANTIE</b>&nbsp;; sans même la garantie implicite de
+COMMERCIALISABILITÉ ou d'ADÉQUATION À UN USAGE PARTICULIER.
+Voir la GNU GPL pour plus de détails&nbsp;:
+<a href="https://www.gnu.org/licenses/gpl-3.0.html">gnu.org/licenses/gpl-3.0</a>
+</p>
+"""
+
+
+class AboutDialog(QDialog):
+    """Dialogue À propos avec notice GPL et liste des dépendances."""
+
+    def __init__(self, parent=None) -> None:
+        from rusheshour import __version__
+        super().__init__(parent)
+        self.setWindowTitle("À propos de RushesHour")
+        self.setFixedWidth(500)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 8)
+
+        browser = QTextBrowser()
+        browser.setOpenExternalLinks(True)
+        browser.setStyleSheet("background:#1e1e1e; color:#ddd; border:none;")
+        browser.setHtml(_ABOUT_HTML.format(version=__version__))
+        browser.setFixedHeight(360)
+        layout.addWidget(browser)
+
+        btn = QPushButton("Fermer")
+        btn.setFixedWidth(100)
+        btn.clicked.connect(self.accept)
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(btn)
+        row.addStretch()
+        layout.addLayout(row)
 
 
 class DeleteConfirmDialog:

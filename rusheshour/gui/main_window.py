@@ -32,7 +32,7 @@ from rusheshour.gui.timeline_widget import TimelineWidget
 from rusheshour.gui.file_panel      import FilePanel
 from rusheshour.gui.dialogs         import (
     RepairDialog, ConvertDialog, ExportDialog, DeleteConfirmDialog,
-    OrphanCleanupDialog,
+    OrphanCleanupDialog, HelpDialog, AboutDialog,
 )
 
 
@@ -233,6 +233,10 @@ class MainWindow(QMainWindow):
 
         # Aide
         m_help = mb.addMenu("&Aide")
+        a_help = m_help.addAction("Raccourcis et aide [F1]")
+        a_help.setShortcut("F1")
+        a_help.triggered.connect(self._show_help)
+        m_help.addSeparator()
         m_help.addAction("À propos").triggered.connect(self._show_about)
 
     def _build_shortcuts(self) -> None:
@@ -648,16 +652,11 @@ class MainWindow(QMainWindow):
             QFileDialog.Option.DontUseNativeDialog | QFileDialog.Option.ShowDirsOnly,
         )
 
+    def _show_help(self) -> None:
+        HelpDialog(self).exec()
+
     def _show_about(self) -> None:
-        QMessageBox.about(
-            self,
-            "À propos de RushesHour",
-            f"<b>RushesHour v{__version__}</b><br>"
-            "Outil de tri interactif de rush vidéo<br><br>"
-            "Dépendances : mpv · ffmpeg · PyQt6<br>"
-            "Licence : GPLv3<br>"
-            "<a href='https://github.com/zobrak/RushesHour'>github.com/zobrak/RushesHour</a>",
-        )
+        AboutDialog(self).exec()
 
     # ------------------------------------------------------------------
     # Plein écran

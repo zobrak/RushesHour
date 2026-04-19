@@ -79,6 +79,7 @@ python rusheshour_gui.py [dossier]  # lancement direct
 | `O` | Marquer le point de sortie OUT (focus timeline requis) |
 | `Ctrl+O` | Ouvrir un dossier |
 | `Ctrl+Q` | Quitter |
+| `F1` | Aide — raccourcis et workflow |
 
 ### Export de segment IN/OUT
 
@@ -96,9 +97,9 @@ de l'original avec le suffixe `_clip_MMmSSs-MMmSSs` (ex.
 
 ### Menus
 
-- **Fichier** — Ouvrir un dossier
+- **Fichier** — Ouvrir un dossier · Quitter
 - **Options** — Réparation automatique · Conversion MP4 · Définir la destination
-- **Aide** — À propos
+- **Aide** — Raccourcis et aide (`F1`) · À propos
 
 ---
 
@@ -196,6 +197,10 @@ pytest tests/ -v -m integration    # intégration seulement
 ```
 
 ---
+
+## Installation
+
+Voir [INSTALL.md](INSTALL.md) pour les instructions détaillées par méthode et plateforme.
 
 ## Licence
 

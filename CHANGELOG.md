@@ -7,6 +7,24 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [1.1.0] — Aide GUI, notice GPL, INSTALL.md
+
+### Ajouté
+- `gui/dialogs.py` — `HelpDialog` (F1) : fenêtre scrollable avec raccourcis,
+  workflow, export IN/OUT, réparation, conversion et gestion des fichiers temporaires.
+- `gui/dialogs.py` — `AboutDialog` : remplace `QMessageBox.about`. Affiche version,
+  auteur, lien GitHub, liste des dépendances avec leur rôle, et notice GPL v3 complète.
+- `gui/main_window.py` — menu Aide → "Raccourcis et aide [F1]" + séparateur + "À propos".
+  Raccourci `F1` enregistré.
+- `INSTALL.md` — guide d'installation détaillé : paquet .deb, scripts bootstrap,
+  mode dev, build depuis les sources, dépannage, tableau des plateformes à venir.
+
+### Modifié
+- `README.md` — ajout raccourci F1 dans le tableau, lien vers INSTALL.md,
+  mention F1 dans la section Menus.
+
+---
+
 ## [1.0.0] — Version stable initiale
 
 ### Ajouté

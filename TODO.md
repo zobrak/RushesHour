@@ -1,6 +1,6 @@
 # RushesHour — TODO
 
-Version courante : **1.0.0**
+Version courante : **1.1.0**
 
 ---
 

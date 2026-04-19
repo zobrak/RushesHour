@@ -72,6 +72,7 @@ Extended help: `--help-repair`, `--help-convert`, `--help-workflow`.
 | `O` | Set OUT marker (requires timeline focus) |
 | `Ctrl+O` | Open folder |
 | `Ctrl+Q` | Quit |
+| `F1` | Help dialog (shortcuts + workflow) |
 
 ## Architecture
 
@@ -96,7 +97,8 @@ rusheshour/
     ├── player_widget.py  # PlayerWidget(QOpenGLWidget) — mpv via MpvRenderContext
     ├── timeline_widget.py  # TimelineWidget — QPainter progress bar, seek on click, IN/OUT markers
     ├── file_panel.py   # FilePanel(QListWidget) — colour-coded file list
-    └── dialogs.py      # RepairDialog, ConvertDialog, ExportDialog, OrphanCleanupDialog, DeleteConfirmDialog
+    └── dialogs.py      # RepairDialog, ConvertDialog, ExportDialog, OrphanCleanupDialog,
+                        # HelpDialog, AboutDialog, DeleteConfirmDialog
 ```
 
 **Entry points:** `sort_rush.py` (CLI shim) and `rusheshour_gui.py` (GUI shim) both delegate to the package.
