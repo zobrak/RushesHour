@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self._info_worker:  _FileInfoWorker | None  = None
         self._fullscreen:   bool                    = False
 
-        self.setWindowTitle("RushesHour v0.9.1")
+        self.setWindowTitle("RushesHour v0.9.2")
         self.setMinimumSize(1050, 650)
         self.setStyleSheet(_DARK)
 
@@ -497,7 +497,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "À propos de RushesHour",
-            "<b>RushesHour v0.9.1</b><br>"
+            "<b>RushesHour v0.9.2</b><br>"
             "Outil de tri interactif de rush vidéo<br><br>"
             "Dépendances : mpv · ffmpeg · PyQt6<br>"
             "Licence : GPLv3<br>"

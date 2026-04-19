@@ -7,6 +7,17 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.2] — Correctif fuite mémoire PlayerWidget
+
+### Corrigé
+- `gui/player_widget.py` — `_on_mpv_update()` : ajout du flag `_update_pending`
+  pour dédupliquer les appels depuis le thread mpv. Sans ce flag, mpv postait
+  un `QEvent` à chaque frame sans attendre que Qt consomme le précédent,
+  saturant la queue d'événements et la mémoire RAM jusqu'au freeze complet de
+  l'interface lors de l'ouverture d'un dossier.
+
+---
+
 ## [0.9.1] — Diagnostic dépendances mpv
 
 ### Ajouté

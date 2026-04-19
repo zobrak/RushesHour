@@ -74,9 +74,10 @@ class PlayerWidget(QOpenGLWidget):
         self.setMinimumSize(640, 360)
         self.setStyleSheet("background-color: #000;")
 
-        self._player:      object | None = None
-        self._render_ctx:  object | None = None
-        self._mpv_available = False
+        self._player:         object | None = None
+        self._render_ctx:     object | None = None
+        self._mpv_available   = False
+        self._update_pending  = False
 
     # ------------------------------------------------------------------
     # Initialisation OpenGL (appelée par Qt au premier show)
@@ -164,6 +165,7 @@ class PlayerWidget(QOpenGLWidget):
 
     def event(self, ev: QEvent) -> bool:
         if ev.type() == _MPV_UPDATE_EVENT:
+            self._update_pending = False
             self.update()
             return True
         return super().event(ev)
@@ -173,7 +175,9 @@ class PlayerWidget(QOpenGLWidget):
     # ------------------------------------------------------------------
 
     def _on_mpv_update(self) -> None:
-        QCoreApplication.postEvent(self, QEvent(_MPV_UPDATE_EVENT))
+        if not self._update_pending:
+            self._update_pending = True
+            QCoreApplication.postEvent(self, QEvent(_MPV_UPDATE_EVENT))
 
     # ------------------------------------------------------------------
     # Observers mpv (thread mpv → signal Qt)
