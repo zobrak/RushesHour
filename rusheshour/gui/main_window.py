@@ -477,10 +477,13 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _open_folder_dialog(self) -> None:
+        import sys
+        print("[RH] _open_folder_dialog: avant getExistingDirectory", flush=True, file=sys.stderr)
         folder = QFileDialog.getExistingDirectory(
             self, "Ouvrir un dossier de rushes",
             options=QFileDialog.Option.DontUseNativeDialog,
         )
+        print(f"[RH] _open_folder_dialog: retour = {folder!r}", flush=True, file=sys.stderr)
         if folder:
             self._load_folder(Path(folder))
 
