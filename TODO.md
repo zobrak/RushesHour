@@ -12,17 +12,66 @@ Version courante : **1.0.0**
 | P2 | GUI PyQt6 + lecteur vidéo embarqué | ✅ Fait |
 | P3 | Export de segment IN/OUT | ✅ Fait |
 | P4 | Qualité et distribution | ✅ Fait |
+| P5 | Portabilité élargie (AppImage · Windows · Flatpak) | 🔲 Planifié |
 
 ---
 
-## P4 — Qualité et distribution (en cours)
+## P4 — Qualité et distribution ✅
 
 - [x] Affichage durée et poids estimé de la sélection IN/OUT dans la GUI
-  (bitrate × durée / 8, affiché en temps réel dès que IN < OUT)
 - [x] Nettoyage des fichiers temporaires orphelins au démarrage
-  (patterns `*.repair_tmp.*` et `*.tmp_converting.mp4` laissés par SIGKILL)
 - [x] Support `run.sh --gui` pour lancer la GUI depuis le script bootstrap
-- [x] Packaging `.deb` Debian 13 (`packaging/build_deb.sh` → `dist/rusheshour_1.0.0_amd64.deb`)
+- [x] Packaging `.deb` Debian 13 (`packaging/build_deb.sh`)
+
+---
+
+## P5 — Portabilité élargie (planifié)
+
+Ordre de priorité recommandé : AppImage → Windows → Flatpak.
+
+### Prérequis communs (code)
+
+- [ ] **Dé-hardcoder `QT_QPA_PLATFORM=xcb`** dans `rusheshour_gui.py`
+  Conditionner à `sys.platform != "win32"` ; sur Wayland laisser Qt détecter.
+  Bloqueur pour Windows et Flatpak.
+
+### AppImage (Linux cross-distro) — ~5 h
+
+- [ ] Ajouter fallback ctypes dans le point d'entrée AppImage pour résoudre
+  `libmpv.so.2` depuis `$APPDIR/lib/` (python-mpv ne trouve pas la lib dans
+  le sandbox AppImage par défaut)
+- [ ] Écrire `packaging/appimage/AppImageBuilder.yml` (appimage-builder)
+  ou recipe `linuxdeploy` + `linuxdeploy-plugin-qt`
+- [ ] Bundler `libmpv.so.2` + binaires statiques `ffmpeg`/`ffprobe`
+- [ ] Bundler plugins Qt (xcb, wayland) via `linuxdeploy-plugin-qt`
+- [ ] **Builder sur Ubuntu 22.04** (GLIBC 2.35) pour garantir la compatibilité
+  Debian 10 / Ubuntu 22.04+ / Fedora 38+ — ne pas builder sur Debian 13
+  (GLIBC trop récent, l'AppImage ne tourne pas sur Ubuntu 22.04)
+- [ ] Publier `dist/RushesHour-1.x.x-x86_64.AppImage` en GitHub Release
+
+### Windows (PyInstaller) — ~7 h
+
+- [ ] Récupérer `libmpv-2.dll` depuis mpv.io (builds Windows officiels)
+- [ ] Récupérer binaires statiques `ffmpeg.exe` / `ffprobe.exe` (ffmpeg-static)
+- [ ] Écrire `packaging/windows/rusheshour.spec` (PyInstaller)
+  — `--add-binary libmpv-2.dll:.`
+  — `--add-binary ffmpeg.exe:bin`
+  — `--hidden-import=PyQt6.sip`
+  — bundler plugin `platforms/qwindows.dll`
+- [ ] Vérifier `QOpenGLWidget` + `MpvRenderContext` sur GPU sans ANGLE
+  (Qt6 Windows supprime la couche OpenGL→Direct3D)
+- [ ] Créer installeur NSIS ou utiliser `winget` pour distribution
+- [ ] Tester sur Windows 10 + Windows 11
+
+### Flatpak (Flathub) — ~7 h
+
+- [ ] Écrire `packaging/flatpak/net.zobrak.RushesHour.yml`
+  — runtime : `org.kde.Platform` (Qt6 inclus)
+  — extension ffmpeg : `org.freedesktop.Platform.ffmpeg-full`
+  — module libmpv : builder depuis source (référence : KDE Haruna)
+  — dépendances Python (PyQt6, python-mpv) : via pip dans le manifest
+- [ ] Supprimer le forçage `QT_QPA_PLATFORM=xcb` (incompatible Wayland Flatpak)
+- [ ] Soumettre sur Flathub après validation locale
 
 ---
 
