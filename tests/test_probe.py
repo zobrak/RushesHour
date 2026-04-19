@@ -33,7 +33,7 @@ def test_is_already_mp4_false_wrong_container():
     assert is_already_mp4(info) is False
 
 
-def test_is_already_mp4_false_multi_format():
-    # format_name can be comma-separated; only first token is checked
+def test_is_already_mp4_true_multi_format():
+    # ffprobe returns "mov,mp4,m4a,3gp,3g2,mj2" for real .mp4 files
     info = {"format_name": "mov,mp4,m4a,3gp,3g2,mj2", "video_codec": "h264"}
-    assert is_already_mp4(info) is False
+    assert is_already_mp4(info) is True

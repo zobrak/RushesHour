@@ -60,11 +60,12 @@ def is_already_mp4(info: dict) -> bool:
     Retourne True si le fichier est déjà encodé en conteneur MP4 + H.264.
 
     format_name peut contenir plusieurs valeurs séparées par des virgules
-    (ex. "mov,mp4,m4a,3gp,3g2,mj2") ; on ne teste que le premier token.
+    (ex. "mov,mp4,m4a,3gp,3g2,mj2" — format réel retourné par ffprobe pour
+    les fichiers .mp4) ; on vérifie la présence de "mp4" dans l'ensemble.
     """
-    first_fmt   = info.get("format_name", "").split(",")[0].strip()
+    formats     = {f.strip() for f in info.get("format_name", "").split(",")}
     video_codec = info.get("video_codec", "")
-    return first_fmt == "mp4" and video_codec in ("h264", "avc")
+    return "mp4" in formats and video_codec in ("h264", "avc")
 
 
 def check_errors(filepath: Path) -> list[str]:
