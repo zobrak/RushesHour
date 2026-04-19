@@ -7,6 +7,21 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.8] — API publique documentée : __all__ + re-exports core
+
+### Ajouté
+- `rusheshour/__init__.py` — `__all__ = ["__version__", "__author__", "__license__"]` :
+  déclare explicitement la surface publique du paquet racine.
+- `rusheshour/core/__init__.py` — module docstring + re-exports + `__all__` :
+  les 17 symboles publics du core (Session, collect_videos, VIDEO_EXTENSIONS,
+  get_video_info, check_errors, is_already_mp4, format_duration, print_video_info,
+  action_repair, REPAIR_STRATEGIES, action_convert_mp4, FFMPEG_ENCODE_FLAGS,
+  action_rename, action_move_to, action_move_manual, action_delete, finalize)
+  sont désormais accessibles via `from rusheshour.core import <symbole>`.
+  Les fonctions privées (_run_repair_strategy, _verify_repaired) sont exclues.
+
+---
+
 ## [0.9.7] — Centralisation de la version
 
 ### Modifié
