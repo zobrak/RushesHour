@@ -75,7 +75,7 @@ The project is a video rushes sorting tool — two UIs sharing a common core.
 rusheshour/
 ├── core/          # Pure logic — no Qt, no CLI
 │   ├── session.py    # Session dataclass (root, output_dir, opt_repair, opt_convert)
-│   ├── scanner.py    # collect_videos() — recursive walk, VIDEO_EXTENSIONS
+│   ├── scanner.py    # collect_videos(), find_orphan_temps() — recursive walk, VIDEO_EXTENSIONS
 │   ├── probe.py      # get_video_info(), check_errors(), is_already_mp4(), format_duration()
 │   ├── repair.py     # action_repair(), REPAIR_STRATEGIES (4 ffmpeg strategies)
 │   ├── convert.py    # action_convert_mp4(), FFMPEG_ENCODE_FLAGS
@@ -90,7 +90,7 @@ rusheshour/
     ├── player_widget.py  # PlayerWidget(QOpenGLWidget) — mpv via MpvRenderContext
     ├── timeline_widget.py  # TimelineWidget — QPainter progress bar, seek on click, IN/OUT markers
     ├── file_panel.py   # FilePanel(QListWidget) — colour-coded file list
-    └── dialogs.py      # RepairDialog, ConvertDialog, DeleteConfirmDialog (QThread workers)
+    └── dialogs.py      # RepairDialog, ConvertDialog, ExportDialog, OrphanCleanupDialog, DeleteConfirmDialog
 ```
 
 **Entry points:** `sort_rush.py` (CLI shim) and `rusheshour_gui.py` (GUI shim) both delegate to the package.
@@ -124,9 +124,9 @@ Failed/interrupted ffmpeg operations leave `*.repair_tmp.*` and `*.tmp_convertin
 
 ## Tests
 
-Unit tests cover pure functions only (no ffmpeg/mpv needed): `test_probe.py` (`format_duration`, `is_already_mp4`) and `test_scanner.py` (`collect_videos`). Integration tests requiring ffmpeg are marked `@pytest.mark.integration`.
+Unit tests cover pure functions only (no ffmpeg/mpv needed): `test_probe.py` (`format_duration`, `is_already_mp4`), `test_scanner.py` (`collect_videos`, `find_orphan_temps`), and `test_export.py` (`clip_output_path`). Integration tests requiring ffmpeg are marked `@pytest.mark.integration`.
 
 ## Roadmap (TODO.md)
 
-- **P3** (next): IN/OUT clip export via `rusheshour/core/export.py` — timeline markers are already rendered in `TimelineWidget`, export logic is not yet implemented
-- **P4**: broader test coverage, orphan temp file cleanup on startup, `run.sh --gui` support
+- **P3** ✅: IN/OUT clip export via `rusheshour/core/export.py`
+- **P4** remaining: `run.sh --gui` support; packaging (PyInstaller/Nuitka, out of immediate scope)

@@ -148,7 +148,7 @@ RushesHour/
 │   ├── __init__.py              # version, metadata
 │   ├── core/
 │   │   ├── session.py           # dataclass Session
-│   │   ├── scanner.py           # collect_videos, VIDEO_EXTENSIONS
+│   │   ├── scanner.py           # collect_videos, VIDEO_EXTENSIONS, find_orphan_temps
 │   │   ├── probe.py             # get_video_info, check_errors, format_duration
 │   │   ├── repair.py            # action_repair, REPAIR_STRATEGIES (4 stratégies)
 │   │   ├── convert.py           # action_convert_mp4, FFMPEG_ENCODE_FLAGS
@@ -164,10 +164,10 @@ RushesHour/
 │       ├── player_widget.py     # PlayerWidget (QOpenGLWidget + MpvRenderContext)
 │       ├── timeline_widget.py   # TimelineWidget (QPainter, marqueurs IN/OUT)
 │       ├── file_panel.py        # FilePanel (QListWidget, codes couleur O(1))
-│       └── dialogs.py           # RepairDialog, ConvertDialog, ExportDialog, DeleteConfirmDialog
+│       └── dialogs.py           # RepairDialog, ConvertDialog, ExportDialog, DeleteConfirmDialog, OrphanCleanupDialog
 ├── tests/
 │   ├── test_probe.py            # format_duration, is_already_mp4 (unitaire + intégration)
-│   ├── test_scanner.py          # collect_videos
+│   ├── test_scanner.py          # collect_videos, find_orphan_temps
 │   ├── test_convert.py          # action_convert_mp4 (intégration)
 │   ├── test_repair.py           # action_repair (intégration)
 │   └── test_export.py           # clip_output_path (unitaire) + action_export_clip (intégration)
@@ -202,6 +202,5 @@ GPLv3 — voir [LICENSE](LICENSE).
 
 ## À venir
 
-- Affichage durée et poids estimé de la sélection IN/OUT
-- Nettoyage des fichiers temporaires orphelins (`*.repair_tmp.*`, `*.tmp_converting.mp4`) au démarrage
 - Support `run.sh --gui`
+- Packaging autonome (PyInstaller / Nuitka)

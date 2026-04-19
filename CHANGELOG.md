@@ -7,6 +7,24 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.13] — Nettoyage des fichiers temporaires orphelins au démarrage
+
+### Ajouté
+- `core/scanner.py` — `find_orphan_temps(root, extra_dirs=None) -> list[Path]` :
+  scanne récursivement `root` (et `extra_dirs`) pour les motifs
+  `*.repair_tmp.*` et `*.tmp_converting.mp4` laissés par un SIGKILL ffmpeg.
+  Déduplication par chemin réel (evite les doublons si les dossiers se recoupent).
+- `gui/dialogs.py` — `OrphanCleanupDialog` : liste les orphelins avec leur taille,
+  propose « Supprimer tout » ou « Ignorer ».
+- `gui/main_window.py` — `_load_folder()` appelle `find_orphan_temps` avant de
+  scanner les vidéos ; affiche `OrphanCleanupDialog` si des orphelins sont trouvés.
+- `core/__init__.py` — re-export de `find_orphan_temps`.
+- `tests/test_scanner.py` — 8 nouveaux tests unitaires pour `find_orphan_temps`
+  (dossier vide, chaque motif, dossier récursif, extra_dirs, déduplication,
+  ignorer fichiers vidéo normaux).
+
+---
+
 ## [0.9.12] — Infos sélection IN/OUT en temps réel
 
 ### Ajouté

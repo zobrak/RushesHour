@@ -6,7 +6,7 @@ standard ; elles sont utilisables indépendamment de la GUI ou du CLI.
 """
 
 from rusheshour.core.session import Session
-from rusheshour.core.scanner import collect_videos, VIDEO_EXTENSIONS
+from rusheshour.core.scanner import collect_videos, VIDEO_EXTENSIONS, find_orphan_temps
 from rusheshour.core.probe   import (
     get_video_info,
     check_errors,
@@ -31,6 +31,7 @@ __all__ = [
     # Scanner
     "collect_videos",
     "VIDEO_EXTENSIONS",
+    "find_orphan_temps",
     # Probe
     "get_video_info",
     "check_errors",

@@ -23,14 +23,17 @@ from PyQt6.QtGui import QKeySequence, QShortcut
 
 from rusheshour             import __version__
 from rusheshour.core.session  import Session
-from rusheshour.core.scanner  import collect_videos
+from rusheshour.core.scanner  import collect_videos, find_orphan_temps
 from rusheshour.core.probe    import get_video_info, check_errors, is_already_mp4, format_duration
 from rusheshour.core.actions  import finalize
 
 from rusheshour.gui.player_widget   import PlayerWidget
 from rusheshour.gui.timeline_widget import TimelineWidget
 from rusheshour.gui.file_panel      import FilePanel
-from rusheshour.gui.dialogs         import RepairDialog, ConvertDialog, ExportDialog, DeleteConfirmDialog
+from rusheshour.gui.dialogs         import (
+    RepairDialog, ConvertDialog, ExportDialog, DeleteConfirmDialog,
+    OrphanCleanupDialog,
+)
 
 
 _DARK = """
@@ -255,6 +258,10 @@ class MainWindow(QMainWindow):
 
     def _load_folder(self, root: Path) -> None:
         self._session.root = root
+        extra = [self._session.output_dir] if self._session.output_dir else None
+        orphans = find_orphan_temps(root, extra)
+        if orphans:
+            OrphanCleanupDialog(orphans, self).exec()
         self._videos = collect_videos(root, exclude_dir=self._session.output_dir)
         self._file_panel.set_files(self._videos)
         if self._videos:

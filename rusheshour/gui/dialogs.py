@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QPushButton,
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QProgressBar, QTextEdit, QMessageBox,
 )
 from PyQt6.QtCore import QThread, pyqtSignal
@@ -447,6 +447,58 @@ class ExportDialog(QDialog):
         self._lbl.setText(f"✗ Erreur : {msg}")
         self._btn.setEnabled(True)
         self._worker.deleteLater()
+
+
+class OrphanCleanupDialog(QDialog):
+    """Signale les fichiers temporaires orphelins et propose leur suppression."""
+
+    def __init__(self, orphans: list[Path], parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Fichiers temporaires orphelins")
+        self.setMinimumWidth(500)
+
+        layout = QVBoxLayout(self)
+        n = len(orphans)
+        layout.addWidget(QLabel(
+            f"<b>{n} fichier(s) temporaire(s) orphelin(s)</b> détecté(s) "
+            "(laissés par une opération interrompue) :"
+        ))
+
+        log = QTextEdit()
+        log.setReadOnly(True)
+        log.setMaximumHeight(180)
+        log.setStyleSheet(
+            "background:#111; color:#ccc; font-family:monospace; font-size:11px;"
+        )
+        lines = []
+        for p in orphans:
+            try:
+                size_kb = round(p.stat().st_size / 1024, 1)
+                lines.append(f"{p.name}  ({size_kb} Ko)")
+            except OSError:
+                lines.append(p.name)
+        log.setPlainText("\n".join(lines))
+        layout.addWidget(log)
+
+        self._orphans = list(orphans)
+
+        btn_row = QHBoxLayout()
+        btn_delete = QPushButton("Supprimer tout")
+        btn_ignore = QPushButton("Ignorer")
+        btn_row.addWidget(btn_delete)
+        btn_row.addWidget(btn_ignore)
+        layout.addLayout(btn_row)
+
+        btn_delete.clicked.connect(self._delete_all)
+        btn_ignore.clicked.connect(self.reject)
+
+    def _delete_all(self) -> None:
+        for p in self._orphans:
+            try:
+                p.unlink()
+            except OSError:
+                pass
+        self.accept()
 
 
 class DeleteConfirmDialog:

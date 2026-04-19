@@ -8,6 +8,31 @@ VIDEO_EXTENSIONS: frozenset[str] = frozenset({
 })
 
 
+_ORPHAN_PATTERNS = ("*.repair_tmp.*", "*.tmp_converting.mp4")
+
+
+def find_orphan_temps(
+    root: Path,
+    extra_dirs: list[Path] | None = None,
+) -> list[Path]:
+    """Retourne les fichiers temporaires orphelins laissés par un SIGKILL ffmpeg."""
+    dirs = [root]
+    if extra_dirs:
+        dirs.extend(extra_dirs)
+    seen: set[Path] = set()
+    orphans: list[Path] = []
+    for d in dirs:
+        if not d.is_dir():
+            continue
+        for pattern in _ORPHAN_PATTERNS:
+            for path in d.rglob(pattern):
+                resolved = path.resolve()
+                if resolved not in seen and path.is_file():
+                    seen.add(resolved)
+                    orphans.append(path)
+    return sorted(orphans)
+
+
 def collect_videos(root_path: Path, exclude_dir: Path | None) -> list[Path]:
     """
     Retourne la liste triée des fichiers vidéo trouvés sous root_path.
