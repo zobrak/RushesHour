@@ -1,7 +1,9 @@
 This software uses the following third-party components:
 
 - mpv (https://mpv.io) — License: GPL v2+
-- ffmpeg / ffprobe (https://ffmpeg.org) — License: GPL v2+
+- libmpv (https://github.com/mpv-player/mpv) — License: LGPLv2.1+
+- ffmpeg / ffprobe (https://ffmpeg.org) — License: LGPLv2.1+/GPLv2+
+  https://ffmpeg.org/legal.html
   (build Debian 13 compilée avec --enable-gpl, incluant libx264, libx265)
 - python-mpv (https://github.com/jaseg/python-mpv) — License: MIT
-- PyQt6 (https://riverbankcomputing.com/software/pyqt) — License: GPL v3
+- PyQt6 (https://riverbankcomputing.com/software/pyqt) — License: GPLv3
