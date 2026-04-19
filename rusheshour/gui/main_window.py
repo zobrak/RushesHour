@@ -510,7 +510,28 @@ class MainWindow(QMainWindow):
                 capture_output=True, text=True,
             )
             return r.stdout.strip() if r.returncode == 0 else ""
-        # dernier recours : dialog Qt (peut crasher sur certaines configs XCB+OpenGL)
+        # macOS / Windows : QFileDialog ne souffre pas du conflit XCB+OpenGL
+        import sys as _sys
+        if _sys.platform != "linux":
+            return QFileDialog.getExistingDirectory(
+                self, title, start, QFileDialog.Option.ShowDirsOnly,
+            )
+        # Linux sans kdialog ni zenity : tkinter subprocess (stdlib, process isolé)
+        try:
+            import subprocess as _sp
+            r = _sp.run(
+                [_sys.executable, "-c",
+                 "import tkinter; from tkinter import filedialog; "
+                 "root=tkinter.Tk(); root.withdraw(); "
+                 f"r=filedialog.askdirectory(initialdir={start!r}, title={title!r}); "
+                 "print(r if r else '', end='')"],
+                capture_output=True, text=True, timeout=300,
+            )
+            if r.returncode == 0:
+                return r.stdout.strip()
+        except Exception:
+            pass
+        # ultime recours : dialog Qt (peut crasher sur XWayland+mpv, dernier filet)
         return QFileDialog.getExistingDirectory(
             self, title, start,
             QFileDialog.Option.DontUseNativeDialog | QFileDialog.Option.ShowDirsOnly,
