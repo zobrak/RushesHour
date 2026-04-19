@@ -7,6 +7,26 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.6] — Correctifs robustesse : timeout ffmpeg, unlink sûr, assert→RuntimeError, race condition worker
+
+### Corrigé
+- `core/repair.py` — `_run_repair_strategy()` : ajout `timeout=3600` sur
+  `subprocess.run`. Sans ce timeout, un fichier pathologique pouvait bloquer
+  le processus indéfiniment.
+- `core/convert.py` — `action_convert_mp4()` : même correctif `timeout=3600`.
+- `core/actions.py` — `action_delete()` : `filepath.unlink()` désormais
+  enveloppé dans `try/except FileNotFoundError` — évite une exception si le
+  fichier a déjà été supprimé entre la confirmation et l'appel.
+- `gui/dialogs.py` — `ConvertWorker.run()` : `assert proc.stderr is not None`
+  remplacé par `if proc.stderr is None: raise RuntimeError(...)`. `assert`
+  est désactivé par `python -O` et masquerait silencieusement l'erreur.
+- `gui/main_window.py` — `_cancel_info_worker()` : ajout de
+  `self._info_worker.wait()` avant d'effacer la référence. Sans `wait()`, le
+  `QThread` continuait de tourner et pouvait émettre `ready` sur un objet
+  déjà supprimé (race condition à la navigation rapide).
+
+---
+
 ## [0.9.5] — Proposition de conversion MP4 au passage au suivant
 
 ### Ajouté

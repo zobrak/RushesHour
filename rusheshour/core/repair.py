@@ -56,7 +56,7 @@ def _run_repair_strategy(filepath: Path, strategy: dict, temp_path: Path) -> boo
         + strategy["output_flags"]
         + [str(temp_path)]
     )
-    result = subprocess.run(cmd, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(cmd, stderr=subprocess.PIPE, text=True, timeout=3600)
     if result.returncode != 0:
         tail = "\n".join(result.stderr.strip().splitlines()[-5:])
         print(f"    ✗ Échec : {tail}")

@@ -105,7 +105,8 @@ class ConvertWorker(QThread):
             proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True, errors="replace")
             self._proc = proc
 
-            assert proc.stderr is not None
+            if proc.stderr is None:
+                raise RuntimeError("Impossible d'ouvrir le flux stderr ffmpeg")
             for line in proc.stderr:
                 if self._abort:
                     break

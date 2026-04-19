@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self._info_worker:  _FileInfoWorker | None  = None
         self._fullscreen:   bool                    = False
 
-        self.setWindowTitle("RushesHour v0.9.5")
+        self.setWindowTitle("RushesHour v0.9.6")
         self.setMinimumSize(1050, 650)
         self.setStyleSheet(_DARK)
 
@@ -287,6 +287,7 @@ class MainWindow(QMainWindow):
                 self._info_worker.ready.disconnect(self._on_file_info)
             except RuntimeError:
                 pass
+            self._info_worker.wait()
             self._info_worker = None
 
     def _on_file_info(self, index: int, info: dict, errors: list[str]) -> None:
@@ -572,7 +573,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "À propos de RushesHour",
-            "<b>RushesHour v0.9.5</b><br>"
+            "<b>RushesHour v0.9.6</b><br>"
             "Outil de tri interactif de rush vidéo<br><br>"
             "Dépendances : mpv · ffmpeg · PyQt6<br>"
             "Licence : GPLv3<br>"

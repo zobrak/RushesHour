@@ -73,7 +73,10 @@ def action_delete(filepath: Path) -> bool:
     from rusheshour.cli.menus import confirm
     print(f"\n  /!\\ SUPPRESSION DÉFINITIVE : {filepath.name}")
     if confirm("Confirmer la suppression ?"):
-        filepath.unlink()
+        try:
+            filepath.unlink()
+        except FileNotFoundError:
+            pass
         print("  ✓ Fichier supprimé.")
         return True
     print("  Annulé.")

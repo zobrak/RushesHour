@@ -44,7 +44,7 @@ def action_convert_mp4(filepath: Path, output_dir: Path | None) -> Path:
     print("  (H.264 / AAC, CRF 23 — peut prendre du temps)")
 
     cmd = ["ffmpeg", "-i", str(filepath)] + FFMPEG_ENCODE_FLAGS + ["-y", str(work_path)]
-    result = subprocess.run(cmd, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(cmd, stderr=subprocess.PIPE, text=True, timeout=3600)
 
     if result.returncode != 0:
         print("  [!] Échec de la conversion.")
