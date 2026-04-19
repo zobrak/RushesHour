@@ -1,6 +1,6 @@
 # RushesHour — TODO
 
-Version courante : **0.9.13**
+Version courante : **1.0.0**
 
 ---
 
@@ -11,7 +11,7 @@ Version courante : **0.9.13**
 | P1 | Structure du dépôt et refactoring CLI | ✅ Fait |
 | P2 | GUI PyQt6 + lecteur vidéo embarqué | ✅ Fait |
 | P3 | Export de segment IN/OUT | ✅ Fait |
-| P4 | Qualité et distribution | 🔄 En cours |
+| P4 | Qualité et distribution | ✅ Fait |
 
 ---
 
@@ -21,8 +21,8 @@ Version courante : **0.9.13**
   (bitrate × durée / 8, affiché en temps réel dès que IN < OUT)
 - [x] Nettoyage des fichiers temporaires orphelins au démarrage
   (patterns `*.repair_tmp.*` et `*.tmp_converting.mp4` laissés par SIGKILL)
-- [ ] Support `run.sh --gui` pour lancer la GUI depuis le script bootstrap
-- [ ] Packaging autonome (PyInstaller / Nuitka) — hors scope immédiat
+- [x] Support `run.sh --gui` pour lancer la GUI depuis le script bootstrap
+- [x] Packaging `.deb` Debian 13 (`packaging/build_deb.sh` → `dist/rusheshour_1.0.0_amd64.deb`)
 
 ---
 

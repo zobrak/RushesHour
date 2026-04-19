@@ -24,8 +24,14 @@ python rusheshour_gui.py [dossier]
 # Bootstrap venv — CLI (first launch)
 bash run.sh /path/to/folder
 
-# Bootstrap venv — GUI, also checks libmpv2/ffmpeg/ffprobe presence
+# Bootstrap venv — GUI (also checks libmpv2/ffmpeg/ffprobe)
 bash run_gui.sh [dossier]
+
+# Bootstrap venv — GUI via run.sh
+bash run.sh --gui [dossier]
+
+# Build .deb package (Debian 13+)
+bash packaging/build_deb.sh   # → dist/rusheshour_1.0.0_amd64.deb
 
 # Install in dev mode
 pip install -e ".[gui]"
@@ -128,5 +134,4 @@ Unit tests cover pure functions only (no ffmpeg/mpv needed): `test_probe.py` (`f
 
 ## Roadmap (TODO.md)
 
-- **P3** ✅: IN/OUT clip export via `rusheshour/core/export.py`
-- **P4** remaining: `run.sh --gui` support; packaging (PyInstaller/Nuitka, out of immediate scope)
+All planned features complete as of v1.0.0. P1–P4 ✅.

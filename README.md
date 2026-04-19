@@ -35,6 +35,7 @@ git clone https://github.com/zobrak/RushesHour.git
 cd RushesHour
 bash run_gui.sh [dossier]   # GUI — vérifie libmpv2, ffmpeg, ffprobe
 bash run.sh [dossier]       # CLI
+bash run.sh --gui [dossier] # GUI via run.sh (alias de run_gui.sh)
 ```
 
 Les deux scripts créent automatiquement un venv isolé dans `.venv/` et
@@ -173,7 +174,9 @@ RushesHour/
 │   └── test_export.py           # clip_output_path (unitaire) + action_export_clip (intégration)
 ├── sort_rush.py                 # Shim CLI
 ├── rusheshour_gui.py            # Point d'entrée GUI
-├── run.sh                       # Bootstrap venv portable (CLI)
+├── packaging/
+│   └── build_deb.sh             # Construit dist/rusheshour_<ver>_amd64.deb
+├── run.sh                       # Bootstrap venv portable (CLI, --gui délègue à run_gui.sh)
 ├── run_gui.sh                   # Bootstrap venv portable (GUI) + vérif. dépendances
 ├── pyproject.toml
 ├── requirements.txt
@@ -200,7 +203,23 @@ GPLv3 — voir [LICENSE](LICENSE).
 
 ---
 
-## À venir
+## Paquet .deb (Debian 13+)
 
-- Support `run.sh --gui`
-- Packaging autonome (PyInstaller / Nuitka)
+```bash
+# Construire le .deb depuis les sources
+bash packaging/build_deb.sh
+
+# Installer (résout les dépendances apt automatiquement)
+sudo apt install ./dist/rusheshour_1.0.0_amd64.deb
+```
+
+Le paquet déclare `python3-pyqt6`, `python3-mpv`, `libmpv2` et `ffmpeg` comme
+dépendances apt. `python3-mpv` est disponible dans Trixie/main ; `libmpv2` et
+`ffmpeg` sont déjà présents sur une installation standard Debian 13.
+
+Après installation :
+
+```bash
+rusheshour-gui [dossier]   # GUI
+sort-rush [options] dossier # CLI
+```

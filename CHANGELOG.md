@@ -7,6 +7,26 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [1.0.0] — Version stable initiale
+
+### Ajouté
+- `packaging/build_deb.sh` — script de construction d'un paquet `.deb` Debian 13+.
+  Produit `dist/rusheshour_1.0.0_amd64.deb` : installe le package Python dans
+  `/usr/lib/python3/dist-packages/`, crée `/usr/bin/rusheshour-gui` et
+  `/usr/bin/sort-rush`. Dépendances déclarées : `python3-pyqt6`, `python3-mpv`,
+  `libmpv2`, `ffmpeg`. `python3-mpv` est disponible dans Trixie/main ;
+  `libmpv2` et `ffmpeg` sont systématiquement présents sur Debian 13.
+- `run.sh --gui` — nouveau flag : détecte `--gui` dans les arguments, le filtre
+  et délègue à `run_gui.sh` (vérification dépendances système + lancement Qt).
+  Tous les autres arguments sont transmis au script GUI.
+
+### Remarque packaging
+Le `.deb` embarque le code Python mais **pas** `libmpv2` ni `ffmpeg` — ce sont des
+bibliothèques système gérées par apt. L'installation se fait par :
+`sudo apt install ./dist/rusheshour_1.0.0_amd64.deb`
+
+---
+
 ## [0.9.13] — Nettoyage des fichiers temporaires orphelins au démarrage
 
 ### Ajouté
