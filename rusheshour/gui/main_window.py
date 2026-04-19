@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self._info_worker:  _FileInfoWorker | None  = None
         self._fullscreen:   bool                    = False
 
-        self.setWindowTitle("RushesHour v0.9.4")
+        self.setWindowTitle("RushesHour v0.9.5")
         self.setMinimumSize(1050, 650)
         self.setStyleSheet(_DARK)
 
@@ -366,6 +366,39 @@ class MainWindow(QMainWindow):
     def _act_next(self) -> None:
         if self._current < 0:
             return
+
+        if (self._session.opt_convert
+                and self._current_info
+                and "error" not in self._current_info
+                and not is_already_mp4(self._current_info)):
+            r = QMessageBox.question(
+                self, "Convertir en MP4 ?",
+                f"« {self._videos[self._current].name} » n'est pas en MP4/H.264.\n"
+                "Convertir avant de passer au suivant ?",
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+                | QMessageBox.StandardButton.Cancel,
+            )
+            if r == QMessageBox.StandardButton.Cancel:
+                return
+            if r == QMessageBox.StandardButton.Yes:
+                current  = self._current
+                filepath = self._videos[current]
+                self._player.stop()
+                dlg = ConvertDialog(filepath, self._session.output_dir, self)
+                dlg.exec()
+                if current != self._current:
+                    return
+                if dlg.result_path == filepath:
+                    # conversion annulée ou échouée — rester sur le fichier
+                    self._load_file(current)
+                    return
+                self._videos[current] = dlg.result_path
+                self._file_panel.update_path(current, dlg.result_path)
+                self._file_panel.mark_status(current, "done")
+                self._go_next()
+                return
+
         filepath = self._videos[self._current]
         new_path = finalize(filepath, self._session.output_dir)
         self._videos[self._current] = new_path
@@ -400,9 +433,7 @@ class MainWindow(QMainWindow):
         if self._current < 0:
             return
         filepath = self._videos[self._current]
-        dest = QFileDialog.getExistingDirectory(
-            self, "Choisir le dossier de destination", str(filepath.parent)
-        )
+        dest = self._pick_directory("Choisir le dossier de destination", str(filepath.parent))
         if not dest:
             return
         dest_dir = Path(dest)
@@ -541,7 +572,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "À propos de RushesHour",
-            "<b>RushesHour v0.9.4</b><br>"
+            "<b>RushesHour v0.9.5</b><br>"
             "Outil de tri interactif de rush vidéo<br><br>"
             "Dépendances : mpv · ffmpeg · PyQt6<br>"
             "Licence : GPLv3<br>"

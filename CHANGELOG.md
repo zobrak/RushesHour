@@ -7,6 +7,21 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.5] — Proposition de conversion MP4 au passage au suivant
+
+### Ajouté
+- `gui/main_window.py` — `_act_next()` : si `opt_convert` est activé et que le
+  fichier courant n'est pas déjà en MP4/H.264 (info chargée, sans erreur),
+  une boîte de dialogue demande « Convertir avant de passer au suivant ? »
+  — [Oui] lance `ConvertDialog` puis passe au suivant si la conversion réussit ;
+  [Non] passe au suivant sans conversion ; [Annuler] reste sur le fichier.
+
+### Corrigé
+- `gui/main_window.py` — `_act_move()` : remplace `QFileDialog.getExistingDirectory`
+  par `_pick_directory()` (même correction que v0.9.4, chemin manqué).
+
+---
+
 ## [0.9.4] — Correctif sélecteur de dossier : processus externe (kdialog/zenity)
 
 ### Corrigé
