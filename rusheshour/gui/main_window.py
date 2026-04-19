@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self._info_worker:  _FileInfoWorker | None  = None
         self._fullscreen:   bool                    = False
 
-        self.setWindowTitle("RushesHour v0.9.2")
+        self.setWindowTitle("RushesHour v0.9.3")
         self.setMinimumSize(1050, 650)
         self.setStyleSheet(_DARK)
 
@@ -477,14 +477,18 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _open_folder_dialog(self) -> None:
-        folder = QFileDialog.getExistingDirectory(self, "Ouvrir un dossier de rushes")
+        folder = QFileDialog.getExistingDirectory(
+            self, "Ouvrir un dossier de rushes",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         if folder:
             self._load_folder(Path(folder))
 
     def _set_destination_dialog(self) -> None:
         current = str(self._session.output_dir) if self._session.output_dir else ""
         folder = QFileDialog.getExistingDirectory(
-            self, "Choisir le dossier de destination", current
+            self, "Choisir le dossier de destination", current,
+            options=QFileDialog.Option.DontUseNativeDialog,
         )
         if folder:
             dest = Path(folder)
@@ -497,7 +501,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "À propos de RushesHour",
-            "<b>RushesHour v0.9.2</b><br>"
+            "<b>RushesHour v0.9.3</b><br>"
             "Outil de tri interactif de rush vidéo<br><br>"
             "Dépendances : mpv · ffmpeg · PyQt6<br>"
             "Licence : GPLv3<br>"

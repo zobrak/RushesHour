@@ -32,7 +32,7 @@ def launch_gui(argv: list[str] | None = None) -> None:
 
     app = QApplication(argv)
     app.setApplicationName("RushesHour")
-    app.setApplicationVersion("0.9.2")
+    app.setApplicationVersion("0.9.3")
 
     # Dossier source passé en argument positionnel
     root = Path(".")

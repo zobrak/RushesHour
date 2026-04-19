@@ -7,14 +7,26 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
-## [0.9.2] — Correctif fuite mémoire PlayerWidget
+## [0.9.3] — Correctif QFileDialog portal hang (XCB/Wayland)
+
+### Corrigé
+- `gui/main_window.py` — `_open_folder_dialog()` et `_set_destination_dialog()` :
+  ajout de `QFileDialog.Option.DontUseNativeDialog`. Sans cette option, Qt tente
+  d'utiliser xdg-desktop-portal via D-Bus pour afficher le sélecteur natif KDE ;
+  sous XCB (app forcée en `QT_QPA_PLATFORM=xcb` sur compositeur Wayland), le
+  portal essaie de reparenter la fenêtre native de Wayland vers une fenêtre X11 —
+  cette opération ne retourne jamais, la boucle d'événements imbriquée tourne à
+  vide, la mémoire RAM se remplit jusqu'à saturation et aucun dialogue n'apparaît.
+
+---
+
+## [0.9.2] — Prévention flooding événements mpv
 
 ### Corrigé
 - `gui/player_widget.py` — `_on_mpv_update()` : ajout du flag `_update_pending`
   pour dédupliquer les appels depuis le thread mpv. Sans ce flag, mpv postait
   un `QEvent` à chaque frame sans attendre que Qt consomme le précédent,
-  saturant la queue d'événements et la mémoire RAM jusqu'au freeze complet de
-  l'interface lors de l'ouverture d'un dossier.
+  pouvant saturer la queue d'événements Qt lors d'un rendu intensif.
 
 ---
 
