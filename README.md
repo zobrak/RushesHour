@@ -73,6 +73,8 @@ python rusheshour_gui.py [dossier]  # lancement direct
 | `Espace` | Pause / lecture |
 | `F` | Plein écran / fenêtré |
 | `Escape` | Quitter le plein écran |
+| `I` | Marquer le point d'entrée IN (focus timeline requis) |
+| `O` | Marquer le point de sortie OUT (focus timeline requis) |
 | `Ctrl+O` | Ouvrir un dossier |
 | `Ctrl+Q` | Quitter |
 
@@ -179,6 +181,5 @@ GPLv3 — voir [LICENSE](LICENSE).
 
 ## À venir — v0.10.0
 
-- Marqueurs IN/OUT sur la timeline (raccourcis `I` / `O`)
-- Export d'extrait en mode copie flux ou réencodage
-- Affichage durée et poids estimé de la sélection
+- Export d'extrait (copie flux ou réencodage) — `rusheshour/core/export.py`
+- Affichage durée et poids estimé de la sélection IN/OUT
