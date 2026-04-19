@@ -386,12 +386,8 @@ class MainWindow(QMainWindow):
                 self, "Convertir en MP4 ?",
                 f"« {self._videos[self._current].name} » n'est pas en MP4/H.264.\n"
                 "Convertir avant de passer au suivant ?",
-                QMessageBox.StandardButton.Yes
-                | QMessageBox.StandardButton.No
-                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            if r == QMessageBox.StandardButton.Cancel:
-                return
             if r == QMessageBox.StandardButton.Yes:
                 current  = self._current
                 filepath = self._videos[current]
@@ -411,7 +407,9 @@ class MainWindow(QMainWindow):
                 return
 
         filepath = self._videos[self._current]
-        new_path = finalize(filepath, self._session.output_dir)
+        new_path = self._gui_finalize(filepath)
+        if new_path is None:
+            return
         self._videos[self._current] = new_path
         self._file_panel.update_path(self._current, new_path)
         self._file_panel.mark_status(self._current, "done")
@@ -522,6 +520,30 @@ class MainWindow(QMainWindow):
         self._player.pause()
         dlg = ExportDialog(filepath, self._mark_in, self._mark_out, self._session.output_dir, self)
         dlg.exec()
+
+    def _gui_finalize(self, filepath: Path) -> Path | None:
+        """
+        Déplace filepath vers output_dir avec gestion de collision Qt.
+        Retourne le chemin final, ou None si l'utilisateur refuse l'écrasement.
+        """
+        if self._session.output_dir is None or not filepath.exists():
+            return filepath
+        try:
+            filepath.relative_to(self._session.output_dir)
+            return filepath  # déjà dans la destination
+        except ValueError:
+            pass
+        dest = self._session.output_dir / filepath.name
+        if dest.exists():
+            r = QMessageBox.question(
+                self, "Conflit de nom",
+                f"« {filepath.name} » existe déjà dans la destination.\nÉcraser ?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if r != QMessageBox.StandardButton.Yes:
+                return None
+        shutil.move(str(filepath), str(dest))
+        return dest
 
     def _go_next(self) -> None:
         self._player.stop()

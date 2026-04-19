@@ -7,6 +7,22 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.11] — Collision destination + simplification dialogue conversion
+
+### Corrigé
+- `gui/main_window.py` — crash/blocage quand un fichier du même nom existe déjà
+  dans la destination : `finalize()` appelait `confirm()` CLI (`input()`) depuis
+  le thread Qt. Remplacé par `_gui_finalize()` qui affiche un `QMessageBox`
+  Oui/Non ; répondre Non annule l'action et laisse le fichier en place.
+
+### Modifié
+- `gui/main_window.py` — dialogue de proposition de conversion MP4 simplifié :
+  `Oui / Non / Annuler` → `Oui / Non`. Non signifie « passer au suivant sans
+  convertir » ; l'ancienne option Annuler (rester sur le fichier) était redondante
+  et source de confusion.
+
+---
+
 ## [0.9.10] — Détection MP4 par header (major_brand)
 
 ### Corrigé
