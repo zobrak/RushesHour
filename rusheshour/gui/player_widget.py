@@ -207,6 +207,10 @@ class PlayerWidget(QOpenGLWidget):
         if self._player:
             self._player.pause = False
 
+    def pause(self) -> None:
+        if self._player:
+            self._player.pause = True
+
     def pause_toggle(self) -> None:
         if self._player:
             self._player.pause = not self._player.pause

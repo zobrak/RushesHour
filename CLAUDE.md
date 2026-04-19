@@ -58,6 +58,7 @@ Extended help: `--help-repair`, `--help-convert`, `--help-workflow`.
 | `5` | Delete |
 | `6` | Convert to MP4 |
 | `7` | Replay |
+| `E` | Export IN/OUT clip |
 | `Space` | Pause / play |
 | `F` | Toggle fullscreen |
 | `Escape` | Exit fullscreen |

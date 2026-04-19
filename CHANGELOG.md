@@ -7,6 +7,25 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.9] — Export clip IN/OUT (P3)
+
+### Ajouté
+- `rusheshour/core/export.py` — `action_export_clip(filepath, start, end, output_dir)` :
+  extraction ffmpeg stream-copy sans réencodage ; `clip_output_path()` pour calculer
+  le nom cible (`_clip_MMmSSs-MMmSSs`) sans lancer l'opération.
+- `gui/dialogs.py` — `ExportWorker` (QThread) + `ExportDialog` : barre de progression
+  réelle via parsing `time=HH:MM:SS` sur stderr ffmpeg ; annulation propre.
+- `gui/main_window.py` — bouton `✂ Exporter clip [E]`, raccourci `E`, slot
+  `_on_selection_changed` connecté au signal `selection_changed` de `TimelineWidget` :
+  le bouton s'active automatiquement dès que IN < OUT sont posés.
+- `gui/player_widget.py` — méthode `pause()` (complète `play()` / `pause_toggle()` /
+  `stop()`).
+- `rusheshour/core/__init__.py` — `action_export_clip` et `clip_output_path`
+  ajoutés aux re-exports publics.
+- `CLAUDE.md` — raccourci `E` documenté dans le tableau des touches.
+
+---
+
 ## [0.9.8] — API publique documentée : __all__ + re-exports core
 
 ### Ajouté

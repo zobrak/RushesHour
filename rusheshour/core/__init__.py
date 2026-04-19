@@ -23,6 +23,7 @@ from rusheshour.core.actions import (
     action_delete,
     finalize,
 )
+from rusheshour.core.export  import action_export_clip, clip_output_path
 
 __all__ = [
     # Session
@@ -48,4 +49,7 @@ __all__ = [
     "action_move_manual",
     "action_delete",
     "finalize",
+    # Export
+    "action_export_clip",
+    "clip_output_path",
 ]

@@ -30,7 +30,7 @@ from rusheshour.core.actions  import finalize
 from rusheshour.gui.player_widget   import PlayerWidget
 from rusheshour.gui.timeline_widget import TimelineWidget
 from rusheshour.gui.file_panel      import FilePanel
-from rusheshour.gui.dialogs         import RepairDialog, ConvertDialog, DeleteConfirmDialog
+from rusheshour.gui.dialogs         import RepairDialog, ConvertDialog, ExportDialog, DeleteConfirmDialog
 
 
 _DARK = """
@@ -78,6 +78,8 @@ class MainWindow(QMainWindow):
         self._current_info: dict                    = {}
         self._info_worker:  _FileInfoWorker | None  = None
         self._fullscreen:   bool                    = False
+        self._mark_in:      float | None            = None
+        self._mark_out:     float | None            = None
 
         self.setWindowTitle(f"RushesHour v{__version__}")
         self.setMinimumSize(1050, 650)
@@ -127,6 +129,7 @@ class MainWindow(QMainWindow):
         self._player.duration_changed.connect(self._timeline.set_duration)
         self._player.pause_changed.connect(self._on_pause_changed)
         self._timeline.seek_requested.connect(self._player.seek)
+        self._timeline.selection_changed.connect(self._on_selection_changed)
 
         self.statusBar().showMessage("Ouvrez un dossier via Fichier → Ouvrir")
 
@@ -151,6 +154,7 @@ class MainWindow(QMainWindow):
         self._btn_convert = btn("⚙ Convertir MP4 [6]")
         self._btn_repair  = btn("🔧 Réparer")
         self._btn_replay  = btn("▶ Rejouer [7]")
+        self._btn_export  = btn("✂ Exporter clip [E]")
 
         layout.addStretch()
 
@@ -162,6 +166,7 @@ class MainWindow(QMainWindow):
         self._btn_convert.clicked.connect(self._act_convert)
         self._btn_repair.clicked.connect(self._act_repair)
         self._btn_replay.clicked.connect(self._act_replay)
+        self._btn_export.clicked.connect(self._act_export)
 
         return bar
 
@@ -231,6 +236,7 @@ class MainWindow(QMainWindow):
             "5":      self._act_delete,
             "6":      self._act_convert,
             "7":      self._act_replay,
+            "E":      self._act_export,
             "Space":  self._player.pause_toggle,
             "F":      self._toggle_fullscreen,
             "Escape": self._exit_fullscreen,
@@ -263,10 +269,13 @@ class MainWindow(QMainWindow):
         self._current_info = {}
         filepath           = self._videos[index]
 
+        self._mark_in  = None
+        self._mark_out = None
         self._file_panel.set_current(index)
         self._timeline.reset()
         self._player.load(filepath)
         self._set_actions_enabled(True)
+        self._btn_export.setEnabled(False)
         self._btn_repair.setStyleSheet("")
         self._btn_convert.setVisible(False)
 
@@ -333,7 +342,7 @@ class MainWindow(QMainWindow):
         for btn in (
             self._btn_next, self._btn_skip, self._btn_rename,
             self._btn_move, self._btn_delete, self._btn_convert,
-            self._btn_repair, self._btn_replay,
+            self._btn_repair, self._btn_replay, self._btn_export,
         ):
             btn.setEnabled(enabled)
 
@@ -494,6 +503,25 @@ class MainWindow(QMainWindow):
     def _act_replay(self) -> None:
         if 0 <= self._current < len(self._videos):
             self._player.load(self._videos[self._current])
+
+    def _on_selection_changed(self, mark_in, mark_out) -> None:
+        self._mark_in  = mark_in
+        self._mark_out = mark_out
+        self._btn_export.setEnabled(
+            mark_in is not None and mark_out is not None and mark_out > mark_in
+        )
+
+    def _act_export(self) -> None:
+        if self._current < 0:
+            return
+        if self._mark_in is None or self._mark_out is None:
+            return
+        if self._mark_out <= self._mark_in:
+            return
+        filepath = self._videos[self._current]
+        self._player.pause()
+        dlg = ExportDialog(filepath, self._mark_in, self._mark_out, self._session.output_dir, self)
+        dlg.exec()
 
     def _go_next(self) -> None:
         self._player.stop()

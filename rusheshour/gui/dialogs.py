@@ -146,6 +146,105 @@ class ConvertWorker(QThread):
             self.failed.emit(str(exc))
 
 
+class ExportWorker(QThread):
+    """
+    Lance ffmpeg en sous-processus pour exporter un segment IN/OUT.
+
+    Utilise stream copy (-c copy) : pas de réencodage, progression lue
+    sur stderr via les lignes time=HH:MM:SS.
+    """
+
+    progress_updated = pyqtSignal(int)   # 0-100
+    finished         = pyqtSignal(Path)
+    failed           = pyqtSignal(str)
+
+    _TIME_RE = re.compile(r"time=(\d+):(\d+):([\d.]+)")
+
+    def __init__(
+        self,
+        filepath: Path,
+        start: float,
+        end: float,
+        output_dir: Path | None,
+    ) -> None:
+        super().__init__()
+        self._filepath   = filepath
+        self._start      = start
+        self._end        = end
+        self._output_dir = output_dir
+        self._abort      = False
+        self._proc: subprocess.Popen | None = None
+
+    def abort(self) -> None:
+        """Demande l'arrêt de l'export en terminant le sous-processus ffmpeg."""
+        self._abort = True
+        if self._proc is not None:
+            try:
+                self._proc.terminate()
+            except OSError:
+                pass
+
+    def run(self) -> None:
+        from rusheshour.core.export import clip_output_path
+
+        filepath = self._filepath
+        start    = self._start
+        end      = self._end
+        duration = end - start
+        out_path = clip_output_path(filepath, start, end, self._output_dir)
+
+        cmd = [
+            "ffmpeg",
+            "-ss", str(start),
+            "-i",  str(filepath),
+            "-t",  str(duration),
+            "-c",  "copy",
+            "-avoid_negative_ts", "make_zero",
+            "-y",
+            str(out_path),
+        ]
+
+        proc = None
+        try:
+            proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True, errors="replace")
+            self._proc = proc
+
+            if proc.stderr is None:
+                raise RuntimeError("Impossible d'ouvrir le flux stderr ffmpeg")
+
+            for line in proc.stderr:
+                if self._abort:
+                    break
+                m = self._TIME_RE.search(line.rstrip())
+                if m and duration > 0:
+                    h, mn, s = int(m.group(1)), int(m.group(2)), float(m.group(3))
+                    elapsed = h * 3600 + mn * 60 + s
+                    pct = min(99, int(elapsed / duration * 100))
+                    self.progress_updated.emit(pct)
+
+            proc.wait()
+            self._proc = None
+
+            if self._abort or proc.returncode != 0:
+                out_path.unlink(missing_ok=True)
+                if not self._abort:
+                    self.failed.emit("Export échoué (code ffmpeg ≠ 0)")
+                return
+
+            self.progress_updated.emit(100)
+            self.finished.emit(out_path)
+
+        except Exception as exc:
+            if proc is not None and proc.poll() is None:
+                try:
+                    proc.terminate()
+                    proc.wait()
+                except OSError:
+                    pass
+            out_path.unlink(missing_ok=True)
+            self.failed.emit(str(exc))
+
+
 # =============================================================================
 # Dialogues
 # =============================================================================
@@ -264,6 +363,83 @@ class ConvertDialog(QDialog):
             self._lbl.setText(f"✓ Converti → {result.name}  ({size_mb} Mo)")
         except FileNotFoundError:
             self._lbl.setText(f"✓ Converti → {result.name}")
+        self._btn.setEnabled(True)
+        self._worker.deleteLater()
+
+    def _on_failed(self, msg: str) -> None:
+        self._lbl.setText(f"✗ Erreur : {msg}")
+        self._btn.setEnabled(True)
+        self._worker.deleteLater()
+
+
+class ExportDialog(QDialog):
+    """Dialogue d'export de clip IN/OUT avec barre de progression réelle."""
+
+    def __init__(
+        self,
+        filepath: Path,
+        start: float,
+        end: float,
+        output_dir: Path | None,
+        parent=None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Export clip")
+        self.setMinimumWidth(440)
+        self.result_path: Path | None = None
+
+        from rusheshour.core.export import clip_output_path
+        from rusheshour.core.probe  import format_duration
+
+        out_name = clip_output_path(filepath, start, end, output_dir).name
+        seg_lbl  = (
+            f"{format_duration(start)} → {format_duration(end)}"
+            f"  ({format_duration(end - start)})"
+        )
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel(f"<b>Export :</b> {filepath.name}"))
+        layout.addWidget(QLabel(f"Segment : {seg_lbl}"))
+        layout.addWidget(QLabel(f"Fichier cible : <i>{out_name}</i>"))
+
+        self._progress = QProgressBar()
+        self._progress.setRange(0, 100)
+        layout.addWidget(self._progress)
+
+        self._lbl = QLabel("En cours…")
+        layout.addWidget(self._lbl)
+
+        self._btn = QPushButton("Fermer")
+        self._btn.setEnabled(False)
+        self._btn.clicked.connect(self.accept)
+        layout.addWidget(self._btn)
+
+        self._worker = ExportWorker(filepath, start, end, output_dir)
+        self._worker.progress_updated.connect(self._progress.setValue)
+        self._worker.finished.connect(self._on_finished)
+        self._worker.failed.connect(self._on_failed)
+        self._worker.start()
+
+    def closeEvent(self, event) -> None:
+        if self._worker.isRunning():
+            try:
+                self._worker.progress_updated.disconnect(self._progress.setValue)
+                self._worker.finished.disconnect(self._on_finished)
+                self._worker.failed.disconnect(self._on_failed)
+            except RuntimeError:
+                pass
+            self._worker.abort()
+            self._worker.wait(5000)
+            self._worker.deleteLater()
+        super().closeEvent(event)
+
+    def _on_finished(self, result: Path) -> None:
+        self.result_path = result
+        try:
+            size_mb = round(result.stat().st_size / 1024 / 1024, 2)
+            self._lbl.setText(f"✓ Clip exporté → {result.name}  ({size_mb} Mo)")
+        except FileNotFoundError:
+            self._lbl.setText(f"✓ Clip exporté → {result.name}")
         self._btn.setEnabled(True)
         self._worker.deleteLater()
 
