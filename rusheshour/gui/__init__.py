@@ -27,12 +27,14 @@ def launch_gui(argv: list[str] | None = None) -> None:
     fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
     QSurfaceFormat.setDefaultFormat(fmt)
 
+    from rusheshour import __version__
+
     if argv is None:
         argv = sys.argv
 
     app = QApplication(argv)
     app.setApplicationName("RushesHour")
-    app.setApplicationVersion("0.9.6")
+    app.setApplicationVersion(__version__)
 
     # Dossier source passé en argument positionnel
     root = Path(".")

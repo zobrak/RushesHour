@@ -7,6 +7,21 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.7] — Centralisation de la version
+
+### Modifié
+- `rusheshour/__init__.py` — source unique de `__version__` pour tout le projet.
+- `rusheshour/gui/__init__.py` — `app.setApplicationVersion()` importe
+  `__version__` au lieu de dupliquer la chaîne.
+- `rusheshour/gui/main_window.py` — titre de fenêtre et dialogue « À propos »
+  construits depuis `__version__`.
+- `rusheshour_gui.py` — version retirée du docstring (commentaire statique, ne
+  peut pas référencer `__version__` à l'exécution).
+- `pyproject.toml` — reste en dur (TOML statique, lu par les outils de build
+  uniquement) ; cohérence à vérifier manuellement lors d'un bump.
+
+---
+
 ## [0.9.6] — Correctifs robustesse : timeout ffmpeg, unlink sûr, assert→RuntimeError, race condition worker
 
 ### Corrigé

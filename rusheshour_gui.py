@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Point d'entrée GUI — RushesHour v0.9.6.
+Point d'entrée GUI — RushesHour.
 
 Usage :
   python rusheshour_gui.py [dossier]

@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QKeySequence, QShortcut
 
+from rusheshour             import __version__
 from rusheshour.core.session  import Session
 from rusheshour.core.scanner  import collect_videos
 from rusheshour.core.probe    import get_video_info, check_errors, is_already_mp4, format_duration
@@ -78,7 +79,7 @@ class MainWindow(QMainWindow):
         self._info_worker:  _FileInfoWorker | None  = None
         self._fullscreen:   bool                    = False
 
-        self.setWindowTitle("RushesHour v0.9.6")
+        self.setWindowTitle(f"RushesHour v{__version__}")
         self.setMinimumSize(1050, 650)
         self.setStyleSheet(_DARK)
 
@@ -573,7 +574,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "À propos de RushesHour",
-            "<b>RushesHour v0.9.6</b><br>"
+            f"<b>RushesHour v{__version__}</b><br>"
             "Outil de tri interactif de rush vidéo<br><br>"
             "Dépendances : mpv · ffmpeg · PyQt6<br>"
             "Licence : GPLv3<br>"
